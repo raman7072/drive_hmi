@@ -1,0 +1,272 @@
+import QtQuick
+
+Item {
+    id: hp
+    width: 1120; height: 520
+
+    readonly property var tiles: [
+        { key: "nav",     title: "Navigation",  glyph: Theme.g.nav,     tint: "#2f80ed" },
+        { key: "media",   title: "Media",       glyph: Theme.g.media,   tint: "#e0457b" },
+        { key: "phone",   title: "Phone",       glyph: Theme.g.phone,   tint: "#27ae60" },
+        { key: "climate", title: "Climate",     glyph: Theme.g.climate, tint: "#2d9cdb" },
+        { key: "vehicle", title: "Vehicle",     glyph: Theme.g.vehicle, tint: "#9b51e0" },
+        { key: "drive",   title: "Driving Assistant", glyph: Theme.g.drive, tint: "#f2994a" },
+        { key: "energy",  title: "Energy",      glyph: Theme.g.energy,  tint: "#56ccf2" },
+        { key: "apps",    title: "Apps",        glyph: Theme.g.apps,    tint: "#bb6bd9" },
+        { key: "settings", title: "Settings",   glyph: Theme.g.settings, tint: "#828fa3" }
+    ]
+
+    Connections {
+        target: App
+        function onKeyPressed(k) {
+            if (App.page !== "home") return
+            if (k === "left") lv.currentIndex = Math.max(0, lv.currentIndex - 1)
+            else if (k === "right") lv.currentIndex = Math.min(hp.tiles.length - 1, lv.currentIndex + 1)
+            else if (k === "enter") App.goTo(hp.tiles[lv.currentIndex].key)
+        }
+    }
+
+    ListView {
+        id: lv
+        anchors.fill: parent
+        anchors.bottomMargin: 36
+        orientation: ListView.Horizontal
+        spacing: 22
+        model: hp.tiles
+        highlightRangeMode: ListView.StrictlyEnforceRange
+        preferredHighlightBegin: (width - 360) / 2
+        preferredHighlightEnd: (width + 360) / 2
+        highlightMoveDuration: 420
+        snapMode: ListView.SnapToItem
+        boundsBehavior: Flickable.StopAtBounds
+        currentIndex: 0
+        onMovementEnded: App.poke()
+
+        delegate: Item {
+            id: d
+            required property int index
+            required property var modelData
+            width: 360; height: lv.height
+            readonly property bool cur: ListView.isCurrentItem
+
+            Component.onCompleted: entry.start()
+            SequentialAnimation {
+                id: entry
+                PauseAnimation { duration: d.index * 70 }
+                ParallelAnimation {
+                    NumberAnimation { target: d; property: "y"; from: 80; to: 0; duration: 500; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: d; property: "opacity"; from: 0; to: 1; duration: 500 }
+                }
+            }
+
+            Rectangle {
+                id: card
+                anchors.fill: parent
+                anchors.topMargin: 14; anchors.bottomMargin: 14
+                radius: 30
+                scale: d.cur ? 1.0 : 0.88
+                opacity: d.cur ? 1.0 : 0.65
+                Behavior on scale { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+                Behavior on opacity { NumberAnimation { duration: 320 } }
+                border.width: d.cur ? 2 : 1
+                border.color: d.cur ? d.modelData.tint : Theme.line
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: Theme.alpha(d.modelData.tint, d.cur ? 0.42 : 0.2) }
+                    GradientStop { position: 0.6; color: Theme.panel2 }
+                    GradientStop { position: 1.0; color: Theme.panel }
+                }
+
+                Text { x: 28; y: 24; text: d.modelData.title; color: Theme.text; font.pixelSize: 28; font.family: Theme.family }
+
+                Loader {
+                    id: hero
+                    x: 20; y: 80; width: parent.width - 40; height: 260
+                    sourceComponent: {
+                        switch (d.modelData.key) {
+                        case "nav": return heroNav
+                        case "media": return heroMedia
+                        case "energy": return heroEnergy
+                        case "climate": return heroClimate
+                        default: return heroGeneric
+                        }
+                    }
+                    onLoaded: { item.glyph = d.modelData.glyph; item.tint = d.modelData.tint }
+                }
+
+                Text {
+                    x: 28; y: parent.height - 78; width: parent.width - 56
+                    elide: Text.ElideRight
+                    color: Theme.dim; font.pixelSize: 20
+                    text: {
+                        switch (d.modelData.key) {
+                        case "nav": return Vehicle.navActive ? Vehicle.navDest + "  \u00B7  ETA " + Vehicle.etaClock : "Where to?"
+                        case "media": return Vehicle.nowPlaying.title + (Vehicle.playing ? "  \u25B6" : "  \u275A\u275A")
+                        case "phone": return Vehicle.callState !== "idle" ? "In call: " + Vehicle.callName : (Vehicle.phoneConnected ? Vehicle.deviceName + " connected" : "No phone")
+                        case "climate": return "Driver " + Vehicle.driverTemp.toFixed(1) + "\u00B0  \u00B7  Cabin " + Vehicle.cabinTemp.toFixed(1) + "\u00B0"
+                        case "vehicle": return Vehicle.alerts[0]
+                        case "drive": return Vehicle.driveMode + (Vehicle.acc ? "  \u00B7  ACC on" : "")
+                        case "energy": return Math.round(Vehicle.battery) + "%  \u00B7  " + Math.round(Vehicle.rangeKm * Vehicle.unitK) + " " + Vehicle.distUnit + (Vehicle.charging ? "  \u26A1\uFE0E" : "")
+                        case "apps": return "Weather \u00B7 Messages \u00B7 Calendar \u00B7 Parking"
+                        default: return "Display \u00B7 Sound \u00B7 Connectivity \u00B7 System"
+                        }
+                    }
+                }
+                Rectangle {
+                    x: 28; y: parent.height - 40; height: 8; radius: 4
+                    width: d.cur ? parent.width - 56 : 40
+                    color: d.modelData.tint; opacity: 0.8
+                    Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        App.poke()
+                        if (d.cur) App.goTo(d.modelData.key)
+                        else lv.currentIndex = d.index
+                    }
+                }
+            }
+        }
+    }
+
+    // page dots
+    Row {
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: parent.height - 24; spacing: 10
+        Repeater {
+            model: hp.tiles.length
+            Rectangle {
+                width: index === lv.currentIndex ? 26 : 8; height: 8; radius: 4
+                color: index === lv.currentIndex ? Theme.ambient : Theme.line
+                Behavior on width { NumberAnimation { duration: 250 } }
+            }
+        }
+    }
+
+    // ---------- hero components ----------
+    Component {
+        id: heroGeneric
+        Item {
+            property string glyph: ""
+            property color tint: Theme.accent
+            Rectangle {
+                anchors.centerIn: parent; width: 150; height: 150; radius: 75
+                color: "transparent"; border.color: Theme.alpha(parent.tint, 0.6); border.width: 2
+                SequentialAnimation on scale { loops: Animation.Infinite
+                    NumberAnimation { to: 1.18; duration: 1500; easing.type: Easing.InOutSine }
+                    NumberAnimation { to: 1.0; duration: 1500; easing.type: Easing.InOutSine } }
+                SequentialAnimation on opacity { loops: Animation.Infinite
+                    NumberAnimation { to: 0.2; duration: 1500 } NumberAnimation { to: 1; duration: 1500 } }
+            }
+            Text {
+                id: gl
+                anchors.centerIn: parent
+                text: parent.glyph; font.pixelSize: 90; color: parent.tint
+                SequentialAnimation on y { loops: Animation.Infinite
+                    NumberAnimation { from: 90; to: 80; duration: 1400; easing.type: Easing.InOutSine }
+                    NumberAnimation { from: 80; to: 90; duration: 1400; easing.type: Easing.InOutSine } }
+            }
+        }
+    }
+
+    Component {
+        id: heroNav
+        Item {
+            id: nv
+            property string glyph: ""
+            property color tint: "white"
+            property real t: 0
+            NumberAnimation on t { running: hp.visible && App.page === "home"; from: 0; to: 1; duration: 4200; loops: Animation.Infinite }
+            Canvas {
+                anchors.fill: parent
+                layer.enabled: true
+                onPaint: {
+                    var ctx = getContext("2d"); ctx.reset()
+                    ctx.strokeStyle = "rgba(255,255,255,0.07)"; ctx.lineWidth = 2
+                    for (var i = 0; i < 6; i++) { ctx.beginPath(); ctx.moveTo(0, i * 50 + 10); ctx.lineTo(width, i * 50 + 10); ctx.stroke() }
+                    for (var j = 0; j < 7; j++) { ctx.beginPath(); ctx.moveTo(j * 52, 0); ctx.lineTo(j * 52, height); ctx.stroke() }
+                    var pts = [[20, 240], [20, 160], [156, 160], [156, 60], [300, 60]]
+                    ctx.strokeStyle = Theme.css(Theme.ambient, 1); ctx.lineWidth = 7; ctx.lineJoin = "round"
+                    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1])
+                    for (var k = 1; k < pts.length; k++) ctx.lineTo(pts[k][0], pts[k][1])
+                    ctx.stroke()
+                }
+            }
+            Rectangle {
+                width: 22; height: 22; radius: 11; color: "white"; border.color: Theme.ambient; border.width: 4
+                property var seg: {
+                    var P = [[20, 240], [20, 160], [156, 160], [156, 60], [300, 60]]
+                    var L = [80, 136, 100, 144]
+                    var tot = 460
+                    var d = nv.t * tot
+                    for (var i = 0; i < 4; i++) {
+                        if (d <= L[i]) {
+                            var f = d / L[i]
+                            return { x: P[i][0] + (P[i + 1][0] - P[i][0]) * f, y: P[i][1] + (P[i + 1][1] - P[i][1]) * f }
+                        }
+                        d -= L[i]
+                    }
+                    return { x: 300, y: 60 }
+                }
+                x: seg.x - 11 + 20; y: seg.y - 11 + 10
+            }
+        }
+    }
+
+    Component {
+        id: heroMedia
+        Item {
+            property string glyph: ""
+            property color tint: "white"
+            Rectangle {
+                id: disc
+                anchors.centerIn: parent; width: 190; height: 190; radius: 95
+                gradient: Gradient {
+                    GradientStop { position: 0; color: Qt.hsla(Vehicle.nowPlaying.hue, 0.8, 0.55, 1) }
+                    GradientStop { position: 1; color: Qt.hsla((Vehicle.nowPlaying.hue + 0.15) % 1, 0.8, 0.3, 1) }
+                }
+                RotationAnimator on rotation { from: 0; to: 360; duration: 7000; loops: Animation.Infinite; running: Vehicle.playing }
+                Rectangle { anchors.centerIn: parent; width: 50; height: 50; radius: 25; color: Theme.panel }
+                Rectangle { x: 20; y: parent.height / 2 - 3; width: 40; height: 6; radius: 3; color: "white"; opacity: 0.4 }
+            }
+        }
+    }
+
+    Component {
+        id: heroEnergy
+        Item {
+            property string glyph: ""
+            property color tint: "white"
+            Rectangle {
+                anchors.centerIn: parent; width: 120; height: 220; radius: 22
+                color: "transparent"; border.color: Theme.dim; border.width: 3
+                Rectangle {
+                    anchors.bottom: parent.bottom; anchors.bottomMargin: 6; anchors.horizontalCenter: parent.horizontalCenter
+                    width: parent.width - 12; radius: 16
+                    height: (parent.height - 12) * Vehicle.battery / 100
+                    color: Vehicle.battery < 20 ? Theme.danger : Theme.ok
+                    Behavior on height { NumberAnimation { duration: 400 } }
+                }
+                Text { anchors.centerIn: parent; text: Math.round(Vehicle.battery) + "%"; font.pixelSize: 38; font.bold: true; color: "white" }
+            }
+        }
+    }
+
+    Component {
+        id: heroClimate
+        Item {
+            property string glyph: ""
+            property color tint: "white"
+            Text {
+                anchors.centerIn: parent
+                text: Vehicle.driverTemp.toFixed(1) + "\u00B0"
+                font.pixelSize: 92; font.weight: Font.Light; color: Theme.text
+            }
+            Text {
+                x: parent.width / 2 - 14; y: 20; text: Theme.g.fan; font.pixelSize: 46; color: Theme.ambient
+                RotationAnimator on rotation { from: 0; to: 360; duration: Math.max(400, 3200 - Vehicle.fan * 400); loops: Animation.Infinite; running: Vehicle.fan > 0 }
+            }
+        }
+    }
+}
