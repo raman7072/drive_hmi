@@ -18,13 +18,40 @@ Item {
         { key: "settings", title: "Settings",   glyph: Theme.g.settings, tint: "#64748b" }
     ]
 
+    property bool ready: false
+
     Connections {
         target: App
         function onKeyPressed(k) {
             if (App.page !== "home") return
-            if (k === "left") lv.currentIndex = Math.max(0, lv.currentIndex - 1)
-            else if (k === "right") lv.currentIndex = Math.min(hp.tiles.length - 1, lv.currentIndex + 1)
-            else if (k === "enter") App.goTo(hp.tiles[lv.currentIndex].key)
+            if (k === "left") {
+                lv.currentIndex = Math.max(0, lv.currentIndex - 1)
+                App.homeIndex = lv.currentIndex
+            }
+            else if (k === "right") {
+                lv.currentIndex = Math.min(hp.tiles.length - 1, lv.currentIndex + 1)
+                App.homeIndex = lv.currentIndex
+            }
+            else if (k === "enter") {
+                App.homeIndex = lv.currentIndex
+                App.goTo(hp.tiles[lv.currentIndex].key)
+            }
+        }
+    }
+
+    Component.onCompleted: {
+        lv.currentIndex = App.homeIndex
+        lv.positionViewAtIndex(App.homeIndex, ListView.Center)
+        Qt.callLater(() => {
+            lv.positionViewAtIndex(App.homeIndex, ListView.Center)
+            lv.currentIndex = App.homeIndex
+            hp.ready = true
+        })
+    }
+
+    onWidthChanged: {
+        if (width > 0 && ready) {
+            lv.positionViewAtIndex(lv.currentIndex, ListView.Center)
         }
     }
 
@@ -38,11 +65,21 @@ Item {
         highlightRangeMode: ListView.StrictlyEnforceRange
         preferredHighlightBegin: (width - hp.cardWidth) / 2
         preferredHighlightEnd: (width + hp.cardWidth) / 2
-        highlightMoveDuration: 420
+        highlightMoveDuration: hp.ready ? 420 : 0
         snapMode: ListView.SnapToItem
         boundsBehavior: Flickable.StopAtBounds
-        currentIndex: 0
-        onMovementEnded: App.poke()
+        currentIndex: App.homeIndex
+
+        onMovementEnded: {
+            App.poke()
+            App.homeIndex = currentIndex
+        }
+
+        onCurrentIndexChanged: {
+            if (hp.ready) {
+                App.homeIndex = currentIndex
+            }
+        }
 
         delegate: Item {
             id: d
@@ -50,16 +87,6 @@ Item {
             required property var modelData
             width: hp.cardWidth; height: lv.height
             readonly property bool cur: ListView.isCurrentItem
-
-            Component.onCompleted: entry.start()
-            SequentialAnimation {
-                id: entry
-                PauseAnimation { duration: d.index * 70 }
-                ParallelAnimation {
-                    NumberAnimation { target: d; property: "y"; from: 80; to: 0; duration: 500; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: d; property: "opacity"; from: 0; to: 1; duration: 500 }
-                }
-            }
 
             Rectangle {
                 id: card
@@ -146,8 +173,13 @@ Item {
                     anchors.fill: parent
                     onClicked: {
                         App.poke()
-                        if (d.cur) App.goTo(d.modelData.key)
-                        else lv.currentIndex = d.index
+                        App.homeIndex = d.index
+                        lv.currentIndex = d.index
+                        if (d.cur) {
+                            App.goTo(d.modelData.key)
+                        } else {
+                            lv.positionViewAtIndex(d.index, ListView.Center)
+                        }
                     }
                 }
             }
@@ -175,21 +207,13 @@ Item {
             property string glyph: ""
             property color tint: Theme.accent
             Rectangle {
-                anchors.centerIn: parent; width: 150; height: 150; radius: 75
-                color: "transparent"; border.color: Theme.alpha(parent.tint, 0.6); border.width: 2
-                SequentialAnimation on scale { loops: Animation.Infinite
-                    NumberAnimation { to: 1.18; duration: 1500; easing.type: Easing.InOutSine }
-                    NumberAnimation { to: 1.0; duration: 1500; easing.type: Easing.InOutSine } }
-                SequentialAnimation on opacity { loops: Animation.Infinite
-                    NumberAnimation { to: 0.2; duration: 1500 } NumberAnimation { to: 1; duration: 1500 } }
+                anchors.centerIn: parent; width: 130; height: 130; radius: 65
+                color: Theme.alpha(parent.tint, 0.12)
+                border.color: Theme.alpha(parent.tint, 0.40); border.width: 1.5
             }
             Text {
-                id: gl
                 anchors.centerIn: parent
-                text: parent.glyph; font.pixelSize: 90; color: parent.tint
-                SequentialAnimation on y { loops: Animation.Infinite
-                    NumberAnimation { from: 90; to: 80; duration: 1400; easing.type: Easing.InOutSine }
-                    NumberAnimation { from: 80; to: 90; duration: 1400; easing.type: Easing.InOutSine } }
+                text: parent.glyph; font.pixelSize: 72; color: parent.tint
             }
         }
     }

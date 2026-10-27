@@ -90,25 +90,17 @@ Item {
             onClicked: App.voiceRequested()
         }
 
-        // Home button – glowing luxury automotive pill
+        // Home button – steady, responsive automotive control
         Rectangle {
             id: homeBtn
             width: bb.width < 650 ? 68 : 76; height: width; radius: 24
             color: App.page === "home" ? Theme.ambient : Theme.panel2
             border.color: Theme.ambient; border.width: 2
             anchors.verticalCenter: parent.verticalCenter
-            scale: hma.pressed ? 0.90 : (hma.containsMouse ? 1.05 : 1.0)
-            Behavior on scale { NumberAnimation { duration: 110; easing.type: Easing.OutCubic } }
-            Behavior on color { ColorAnimation { duration: 240 } }
+            scale: hma.pressed ? 0.96 : (hma.containsMouse ? 1.02 : 1.0)
+            Behavior on scale { NumberAnimation { duration: 60; easing.type: Easing.OutCubic } }
+            Behavior on color { ColorAnimation { duration: 120 } }
 
-            // inner glow ring when active
-            Rectangle {
-                visible: App.page === "home"
-                anchors.fill: parent; radius: parent.radius
-                color: "transparent"
-                border.width: 2; border.color: Theme.alpha(Theme.ambient, 0.45)
-                scale: 1.15
-            }
             Text {
                 anchors.centerIn: parent; text: Theme.g.home
                 font.pixelSize: bb.width < 650 ? 30 : 36

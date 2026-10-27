@@ -237,12 +237,16 @@ Item {
                             height: 52; text: "BRAKE"; fontSize: 15; tint: Theme.danger; active: pressed
                             onPressedChanged: { if (pressed) { Vehicle.manual = true; Vehicle.autoDrive = false; Vehicle.brake = 1 } else Vehicle.brake = 0 }
                         }
-                        Row {
-                            spacing: 6; anchors.verticalCenter: parent.verticalCenter
-                            Text { text: "Regen:"; color: Theme.dim; font.pixelSize: 12; font.family: Theme.family; anchors.verticalCenter: parent.verticalCenter }
-                            Repeater {
-                                model: ["Low", "Std", "High"]
-                                Btn { width: 56; height: 38; fontSize: 13; text: modelData; active: Vehicle.regen === index; tint: Theme.ok; onClicked: Vehicle.regen = index }
+                        Item {
+                            width: regenRow.width; height: 52
+                            Row {
+                                id: regenRow
+                                spacing: 6; anchors.verticalCenter: parent.verticalCenter
+                                Text { text: "Regen:"; color: Theme.dim; font.pixelSize: 12; font.family: Theme.family; anchors.verticalCenter: parent.verticalCenter }
+                                Repeater {
+                                    model: ["Low", "Std", "High"]
+                                    Btn { width: 56; height: 38; fontSize: 13; text: modelData; active: Vehicle.regen === index; tint: Theme.ok; onClicked: Vehicle.regen = index }
+                                }
                             }
                         }
                     }
@@ -266,6 +270,7 @@ Item {
                 Repeater {
                     model: dp.modes
                     Rectangle {
+                        id: sModeCard
                         width: (parent.width - (parent.columns - 1) * 12) / parent.columns
                         height: 84; radius: 20
                         property color mcol: Vehicle.modeColor(modelData.name)
@@ -279,15 +284,15 @@ Item {
                             x: 14; anchors.verticalCenter: parent.verticalCenter; spacing: 12
                             Rectangle {
                                 width: 44; height: 44; radius: 22
-                                color: Theme.alpha(parent.parent.mcol, parent.parent.sel ? 0.35 : 0.18)
-                                border.color: parent.parent.mcol; border.width: parent.parent.sel ? 2 : 1
+                                color: Theme.alpha(sModeCard.mcol, sModeCard.sel ? 0.35 : 0.18)
+                                border.color: sModeCard.mcol; border.width: sModeCard.sel ? 2 : 1
                                 anchors.verticalCenter: parent.verticalCenter
-                                Text { anchors.centerIn: parent; text: modelData.glyph; color: parent.parent.mcol; font.pixelSize: 22 }
+                                Text { anchors.centerIn: parent; text: modelData.glyph; color: sModeCard.mcol; font.pixelSize: 22 }
                             }
                             Column {
                                 anchors.verticalCenter: parent.verticalCenter; spacing: 2
-                                width: parent.parent.width - 76
-                                Text { text: modelData.name; color: parent.parent.sel ? "white" : Theme.text; font.pixelSize: 20; font.weight: Font.DemiBold; font.family: Theme.family }
+                                width: sModeCard.width - 76
+                                Text { text: modelData.name; color: sModeCard.sel ? "white" : Theme.text; font.pixelSize: 20; font.weight: Font.DemiBold; font.family: Theme.family }
                                 Text { text: modelData.desc; color: Theme.dim; font.pixelSize: 11; width: parent.width; elide: Text.ElideRight; font.family: Theme.family }
                             }
                         }

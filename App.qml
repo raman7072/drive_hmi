@@ -10,6 +10,9 @@ QtObject {
     property string layoutMode: "split" // "split", "cluster", "infotainment"
     property int displayWidth: 1600
     property int displayHeight: 600
+    property int homeIndex: 0
+
+    readonly property var homeTileKeys: ["nav", "media", "phone", "climate", "vehicle", "drive", "energy", "apps", "settings"]
 
     signal pageRequested(string p)
     signal toastRequested(string text, string glyph)
@@ -22,7 +25,15 @@ QtObject {
     signal layoutModeRequested(string m)
     signal fullscreenRequested()
 
-    function goTo(p) { pageRequested(p) }
+    function goTo(p) {
+        if (p !== "home") {
+            var idx = homeTileKeys.indexOf(p)
+            if (idx !== -1) {
+                homeIndex = idx
+            }
+        }
+        pageRequested(p)
+    }
     function toast(t, g) { toastRequested(t, g === undefined ? "\u24D8" : g) }
     function poke() { activity() }
     function setLayoutMode(m) { layoutMode = m; layoutModeRequested(m) }
