@@ -29,12 +29,15 @@ Item {
 
     // ----- source list -----
     Column {
-        x: 20; y: 16; spacing: 10
+        id: sourceCol
+        anchors.left: parent.left; anchors.leftMargin: 16; y: 14
+        width: mp.width < 700 ? 110 : 160
+        spacing: 8
         Repeater {
             model: Vehicle.sources
             Btn {
-                width: 180; height: 68
-                text: modelData
+                width: parent.width; height: mp.height < 460 ? 56 : 64
+                text: modelData; fontSize: mp.width < 700 ? 15 : 19
                 active: Vehicle.sourceIndex === index
                 tint: Qt.hsla(Vehicle.nowPlaying.hue, 0.8, 0.6, 1)
                 onClicked: Vehicle.selectSource(index)
@@ -44,15 +47,22 @@ Item {
 
     // ----- now playing -----
     Item {
-        x: 220; y: 10; width: 580; height: 500
+        id: nowPlaying
+        anchors.left: sourceCol.right; anchors.leftMargin: 16
+        anchors.right: playlistCard.visible ? playlistCard.left : parent.right
+        anchors.rightMargin: 16
+        y: 10; height: parent.height - 20
 
         // Vinyl record disc
         Item {
-            x: 10; y: 10; width: 240; height: 240
+            id: vinylItem
+            x: 10; y: 10
+            width: Math.min(220, Math.max(120, Math.min(nowPlaying.width * 0.38, (nowPlaying.height - 180) * 0.8)))
+            height: width
 
             Glow {
                 anchors.centerIn: parent
-                width: 360; height: 360
+                width: parent.width * 1.5; height: width
                 color: Qt.hsla(Vehicle.nowPlaying.hue, 0.85, 0.55, 1)
                 strength: Vehicle.playing ? 0.35 : 0.12
                 z: -1
@@ -60,7 +70,7 @@ Item {
 
             Rectangle {
                 id: disc
-                anchors.fill: parent; radius: 120
+                anchors.fill: parent; radius: width / 2
                 gradient: Gradient {
                     GradientStop { position: 0.0; color: "#161b24" }
                     GradientStop { position: 0.5; color: "#0d1118" }
@@ -78,7 +88,7 @@ Item {
                     model: 5
                     Rectangle {
                         anchors.centerIn: parent
-                        width: 100 + index * 26; height: width; radius: width / 2
+                        width: parent.width * (0.35 + index * 0.12); height: width; radius: width / 2
                         color: "transparent"; border.color: "white"
                         border.width: 1; opacity: 0.07 + (index % 2) * 0.04
                     }
@@ -87,7 +97,7 @@ Item {
                 // Center label with artwork hue gradient
                 Rectangle {
                     anchors.centerIn: parent
-                    width: 86; height: 86; radius: 43
+                    width: parent.width * 0.36; height: width; radius: width / 2
                     gradient: Gradient {
                         GradientStop { position: 0; color: Qt.hsla(Vehicle.nowPlaying.hue, 0.85, 0.55, 1) }
                         GradientStop { position: 1; color: Qt.hsla((Vehicle.nowPlaying.hue + 0.12) % 1, 0.85, 0.35, 1) }
@@ -97,44 +107,39 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         text: Theme.g.media
-                        font.pixelSize: 32; color: "white"
-                        opacity: 0.9
+                        font.pixelSize: Math.round(parent.width * 0.4)
+                        color: "white"; opacity: 0.9
                     }
 
                     // Spindle hole
                     Rectangle {
                         anchors.centerIn: parent
-                        width: 16; height: 16; radius: 8
+                        width: 14; height: 14; radius: 7
                         color: Theme.bg; border.color: Theme.alpha("white", 0.3); border.width: 1
                     }
-                }
-
-                // Vinyl sheen reflection line
-                Rectangle {
-                    x: 24; y: parent.height / 2 - 4
-                    width: 60; height: 8; radius: 4
-                    color: "white"; opacity: 0.25
                 }
             }
         }
 
         // Track info
         Column {
-            x: 280; y: 24; width: 290; spacing: 6
+            anchors.left: vinylItem.right; anchors.leftMargin: 18
+            anchors.right: parent.right; anchors.rightMargin: 10
+            y: vinylItem.y + 4; spacing: 4
             Text {
                 text: Vehicle.nowPlaying.title
-                color: Theme.text; font.pixelSize: 32
+                color: Theme.text; font.pixelSize: nowPlaying.width < 380 ? 22 : 28
                 font.weight: Font.DemiBold; font.family: Theme.family
                 width: parent.width; elide: Text.ElideRight
             }
             Text {
                 text: Vehicle.nowPlaying.artist
-                color: Theme.dim; font.pixelSize: 21; font.family: Theme.family
+                color: Theme.dim; font.pixelSize: nowPlaying.width < 380 ? 16 : 19; font.family: Theme.family
                 width: parent.width; elide: Text.ElideRight
             }
             Text {
                 text: Vehicle.nowPlaying.album
-                color: Theme.dimmer; font.pixelSize: 16; font.family: Theme.family
+                color: Theme.dimmer; font.pixelSize: 14; font.family: Theme.family
                 width: parent.width; elide: Text.ElideRight
             }
             Row {
@@ -151,14 +156,16 @@ Item {
                 }
                 Text {
                     text: Vehicle.sourceIndex === 0 ? "Live FM " + Vehicle.nowPlaying.freq.toFixed(1) + " MHz" : "Digital DAB Radio"
-                    color: Theme.ok; font.pixelSize: 15; font.family: Theme.family
+                    color: Theme.ok; font.pixelSize: 14; font.family: Theme.family
                 }
             }
         }
 
         // progress / tuner
         Item {
-            x: 10; y: 268; width: 560; height: 60
+            id: progressItem
+            x: 10; y: vinylItem.y + vinylItem.height + 12
+            width: parent.width - 20; height: 50
             visible: !Vehicle.isRadio
             Slide {
                 width: parent.width; y: 0
@@ -166,11 +173,12 @@ Item {
                 value: Vehicle.position
                 onMoved: (val) => Vehicle.position = val
             }
-            Text { y: 34; text: Vehicle.fmt(Vehicle.position); color: Theme.dim; font.pixelSize: 15; font.family: Theme.family }
-            Text { y: 34; anchors.right: parent.right; text: Vehicle.fmt(Vehicle.nowPlaying.dur); color: Theme.dim; font.pixelSize: 15; font.family: Theme.family }
+            Text { y: 30; text: Vehicle.fmt(Vehicle.position); color: Theme.dim; font.pixelSize: 14; font.family: Theme.family }
+            Text { y: 30; anchors.right: parent.right; text: Vehicle.fmt(Vehicle.nowPlaying.dur); color: Theme.dim; font.pixelSize: 14; font.family: Theme.family }
         }
         Item {
-            x: 10; y: 268; width: 560; height: 60
+            x: 10; y: vinylItem.y + vinylItem.height + 12
+            width: parent.width - 20; height: 50
             visible: Vehicle.sourceIndex === 0
             Slide {
                 width: parent.width
@@ -181,36 +189,37 @@ Item {
                     if (Math.abs(l[best].freq - val) < 1.5) Vehicle.trackIndex = best
                 }
             }
-            Text { y: 34; text: "87.5"; color: Theme.dim; font.pixelSize: 15 }
-            Text { y: 34; anchors.right: parent.right; text: "108.0 MHz"; color: Theme.dim; font.pixelSize: 15 }
+            Text { y: 30; text: "87.5"; color: Theme.dim; font.pixelSize: 14 }
+            Text { y: 30; anchors.right: parent.right; text: "108.0 MHz"; color: Theme.dim; font.pixelSize: 14 }
         }
 
         // transport controls
         Row {
-            x: 10; y: 338; spacing: 14
-            Btn { width: 70; height: 70; round: true; glyph: Theme.g.shuffle; active: Vehicle.shuffle; onClicked: Vehicle.shuffle = !Vehicle.shuffle; visible: !Vehicle.isRadio }
-            Btn { width: 80; height: 70; round: true; glyph: Theme.g.prev; onClicked: Vehicle.prevTrack() }
+            id: transportRow
+            x: 10; y: progressItem.y + 54; spacing: nowPlaying.width < 400 ? 8 : 12
+            Btn { width: 62; height: 62; round: true; glyph: Theme.g.shuffle; active: Vehicle.shuffle; onClicked: Vehicle.shuffle = !Vehicle.shuffle; visible: !Vehicle.isRadio && nowPlaying.width >= 350 }
+            Btn { width: 70; height: 62; round: true; glyph: Theme.g.prev; onClicked: Vehicle.prevTrack() }
             Btn {
-                width: 110; height: 70; round: true
+                width: 96; height: 62; round: true
                 glyph: Vehicle.playing ? Theme.g.pause : Theme.g.play
                 active: true
                 tint: Qt.hsla(Vehicle.nowPlaying.hue, 0.8, 0.6, 1)
                 onClicked: Vehicle.playing = !Vehicle.playing
             }
-            Btn { width: 80; height: 70; round: true; glyph: Theme.g.next; onClicked: Vehicle.nextTrack() }
-            Btn { width: 70; height: 70; round: true; glyph: Theme.g.repeat; text: Vehicle.repeatMode === 2 ? "1" : ""; active: Vehicle.repeatMode > 0
-                  visible: !Vehicle.isRadio; onClicked: Vehicle.repeatMode = (Vehicle.repeatMode + 1) % 3 }
+            Btn { width: 70; height: 62; round: true; glyph: Theme.g.next; onClicked: Vehicle.nextTrack() }
+            Btn { width: 62; height: 62; round: true; glyph: Theme.g.repeat; text: Vehicle.repeatMode === 2 ? "1" : ""; active: Vehicle.repeatMode > 0
+                  visible: !Vehicle.isRadio && nowPlaying.width >= 350; onClicked: Vehicle.repeatMode = (Vehicle.repeatMode + 1) % 3 }
         }
 
         // equalizer visualizer
         Row {
-            x: 10; y: 432; spacing: 7; height: 72
+            x: 10; y: transportRow.y + 70; spacing: 6; height: Math.max(30, nowPlaying.height - (transportRow.y + 70) - 10)
             Repeater {
-                model: mp.eq.length
+                model: Math.min(mp.eq.length, Math.floor((nowPlaying.width - 20) / 16))
                 Rectangle {
-                    width: 16; radius: 4
+                    width: 10; radius: 3
                     anchors.bottom: parent.bottom
-                    height: Math.max(4, 68 * mp.eq[index])
+                    height: Math.max(4, parent.height * mp.eq[index])
                     Behavior on height { NumberAnimation { duration: 80 } }
                     gradient: Gradient {
                         GradientStop { position: 0.0; color: Qt.hsla((Vehicle.nowPlaying.hue + index * 0.008) % 1, 0.85, 0.65, 1) }
@@ -223,7 +232,11 @@ Item {
 
     // ----- playlist -----
     Rectangle {
-        x: 830; y: 14; width: 270; height: 492; radius: 24
+        id: playlistCard
+        anchors.right: parent.right; anchors.rightMargin: 16; y: 14
+        width: Math.min(270, (mp.width - 200) * 0.36)
+        height: parent.height - 28; radius: 24
+        visible: mp.width >= 860
         color: Theme.glass; border.color: Theme.glassB; border.width: 1
 
         Rectangle {

@@ -2,24 +2,25 @@ import QtQuick
 
 Item {
     id: cl
-    width: 720; height: 680
+    implicitWidth: 720; implicitHeight: 680
 
-    Glow { anchors.centerIn: ring; width: 720; height: 720; color: Theme.ambient; strength: 0.20 }
+    Glow { anchors.centerIn: ring; width: ring.width * 1.5; height: width; color: Theme.ambient; strength: 0.20 }
 
     // ---------- top row: gear selector ----------
     Row {
-        x: 30; y: 20; spacing: 10
+        anchors.left: parent.left; anchors.leftMargin: Math.max(16, cl.width * 0.035)
+        y: 20; spacing: 8
         Repeater {
             model: ["P", "R", "N", "D"]
             Rectangle {
-                width: 38; height: 38; radius: 10
+                width: 36; height: 36; radius: 10
                 color: Vehicle.gear === modelData ? Theme.alpha(Theme.ambient, 0.22) : "transparent"
                 border.color: Vehicle.gear === modelData ? Theme.ambient : "transparent"
                 border.width: 1
                 Text {
                     anchors.centerIn: parent
                     text: modelData
-                    font.pixelSize: 22
+                    font.pixelSize: 20
                     font.weight: Vehicle.gear === modelData ? Font.Bold : Font.Normal
                     color: Vehicle.gear === modelData ? Theme.ambient : Theme.dim
                     Behavior on color { ColorAnimation { duration: 200 } }
@@ -50,39 +51,50 @@ Item {
         }
     }
     Text {
-        anchors.right: parent.right; anchors.rightMargin: 30
+        anchors.right: parent.right; anchors.rightMargin: Math.max(16, cl.width * 0.035)
         y: 18
         text: Vehicle.timeText
-        font.pixelSize: 28; color: Theme.text
+        font.pixelSize: 26; color: Theme.text
+    }
+
+    // ---------- ring ----------
+    SpeedRing {
+        id: ring
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: cl.height > 580 ? 50 : (cl.height > 420 ? 30 : 15)
+        width: Math.min(cl.width - (cl.width > 540 ? 180 : 40), cl.height - (cl.height > 550 ? 210 : 120), 440)
+        height: width
     }
 
     // ---------- turn signals ----------
     Text {
-        x: 38; y: 72; text: "\u2B05"; font.pixelSize: 54
+        x: Math.max(16, ring.x - 56)
+        y: ring.y + ring.height * 0.12
+        text: "\u2B05"; font.pixelSize: Math.round(Math.min(54, cl.width * 0.08))
         color: Theme.ok
         opacity: (Vehicle.leftSignal || Vehicle.hazard) ? (Vehicle.blink ? 1 : 0.10) : 0.06
         Behavior on opacity { NumberAnimation { duration: 80 } }
-        // drop shadow for blink glow
         layer.enabled: (Vehicle.leftSignal || Vehicle.hazard) && Vehicle.blink
     }
     Text {
-        x: 626; y: 72; text: "\u27A1"; font.pixelSize: 54
+        x: Math.min(parent.width - 56, ring.x + ring.width + 12)
+        y: ring.y + ring.height * 0.12
+        text: "\u27A1"; font.pixelSize: Math.round(Math.min(54, cl.width * 0.08))
         color: Theme.ok
         opacity: (Vehicle.rightSignal || Vehicle.hazard) ? (Vehicle.blink ? 1 : 0.10) : 0.06
         Behavior on opacity { NumberAnimation { duration: 80 } }
         layer.enabled: (Vehicle.rightSignal || Vehicle.hazard) && Vehicle.blink
     }
 
-    // ---------- ring ----------
-    SpeedRing { id: ring; x: 140; y: 50 }
-
     // ---------- speed limit ----------
     Rectangle {
-        visible: Vehicle.speedInfo
-        x: 568; y: 118; width: 76; height: 76; radius: 38
-        color: "white"; border.width: 7; border.color: "#e0231b"
+        visible: Vehicle.speedInfo && cl.width >= 420
+        x: Math.min(parent.width - 80, ring.x + ring.width + 10)
+        y: ring.y + ring.height * 0.28
+        width: 68; height: 68; radius: 34
+        color: "white"; border.width: 6; border.color: "#e0231b"
         opacity: ring.over && blinkSign.on ? 0.35 : 1
-        Text { anchors.centerIn: parent; text: Vehicle.speedLimit * 1; font.pixelSize: 30; font.bold: true; color: "#111" }
+        Text { anchors.centerIn: parent; text: Vehicle.speedLimit * 1; font.pixelSize: 26; font.bold: true; color: "#111" }
         Behavior on opacity { NumberAnimation { duration: 150 } }
     }
     QtObject { id: blinkSign; property bool on: false }
@@ -90,39 +102,47 @@ Item {
 
     // ---------- ACC chip ----------
     Rectangle {
-        visible: Vehicle.acc
-        x: 70; y: 128; width: 76; height: 58; radius: Theme.radiusSm
+        visible: Vehicle.acc && cl.width >= 420
+        x: Math.max(16, ring.x - 76)
+        y: ring.y + ring.height * 0.28
+        width: 68; height: 56; radius: Theme.radiusSm
         color: Theme.alpha(Theme.ok, 0.15); border.color: Theme.ok; border.width: 1
         Column {
             anchors.centerIn: parent; spacing: 2
-            Text { anchors.horizontalCenter: parent.horizontalCenter; text: "ACC"; color: Theme.ok; font.pixelSize: 13; font.weight: Font.Bold; font.letterSpacing: 1.5 }
-            Text { anchors.horizontalCenter: parent.horizontalCenter; text: Math.round(Vehicle.cruiseSpeed * Vehicle.unitK); color: Theme.text; font.pixelSize: 22; font.weight: Font.Medium }
+            Text { anchors.horizontalCenter: parent.horizontalCenter; text: "ACC"; color: Theme.ok; font.pixelSize: 12; font.weight: Font.Bold; font.letterSpacing: 1.5 }
+            Text { anchors.horizontalCenter: parent.horizontalCenter; text: Math.round(Vehicle.cruiseSpeed * Vehicle.unitK); color: Theme.text; font.pixelSize: 20; font.weight: Font.Medium }
         }
     }
 
     // ---------- left column ----------
     Column {
-        x: 22; y: 260; spacing: 14; width: 120
+        anchors.left: parent.left; anchors.leftMargin: Math.max(16, cl.width * 0.035)
+        y: Math.min(cl.height * 0.44, ring.y + ring.height * 0.46)
+        spacing: 12; width: 110
+        visible: cl.width >= 440
         Column {
-            Text { text: "OUTSIDE"; color: Theme.dim; font.pixelSize: 12; font.letterSpacing: 2 }
-            Text { text: Vehicle.outsideTemp.toFixed(1) + "\u00B0C"; color: Theme.text; font.pixelSize: 26 }
+            Text { text: "OUTSIDE"; color: Theme.dim; font.pixelSize: 11; font.letterSpacing: 2 }
+            Text { text: Vehicle.outsideTemp.toFixed(1) + "\u00B0C"; color: Theme.text; font.pixelSize: 24 }
         }
         Column {
-            Text { text: "TRIP"; color: Theme.dim; font.pixelSize: 12; font.letterSpacing: 2 }
-            Text { text: (Vehicle.trip * Vehicle.unitK).toFixed(1) + " " + Vehicle.distUnit; color: Theme.text; font.pixelSize: 22 }
+            Text { text: "TRIP"; color: Theme.dim; font.pixelSize: 11; font.letterSpacing: 2 }
+            Text { text: (Vehicle.trip * Vehicle.unitK).toFixed(1) + " " + Vehicle.distUnit; color: Theme.text; font.pixelSize: 20 }
         }
         Column {
-            Text { text: "ODOMETER"; color: Theme.dim; font.pixelSize: 12; font.letterSpacing: 2 }
-            Text { text: Math.round(Vehicle.odometer * Vehicle.unitK) + " " + Vehicle.distUnit; color: Theme.text; font.pixelSize: 18 }
+            Text { text: "ODOMETER"; color: Theme.dim; font.pixelSize: 11; font.letterSpacing: 2 }
+            Text { text: Math.round(Vehicle.odometer * Vehicle.unitK) + " " + Vehicle.distUnit; color: Theme.text; font.pixelSize: 16 }
         }
     }
 
     // ---------- right column: battery ----------
     Item {
-        x: 598; y: 260; width: 110; height: 200
+        anchors.right: parent.right; anchors.rightMargin: Math.max(16, cl.width * 0.035)
+        y: Math.min(cl.height * 0.44, ring.y + ring.height * 0.46)
+        width: 110; height: 190
+        visible: cl.width >= 440
         Rectangle {
             id: batBar
-            x: 62; y: 0; width: 26; height: 170; radius: 8
+            x: 64; y: 0; width: 24; height: 150; radius: 8
             color: Theme.panel2; border.color: Theme.line
             Rectangle {
                 anchors.bottom: parent.bottom; anchors.bottomMargin: 3
@@ -137,15 +157,20 @@ Item {
                 }
             }
         }
-        Text { x: 0; y: 0; width: 56; horizontalAlignment: Text.AlignRight; text: Math.round(Vehicle.battery) + "%"; color: Theme.text; font.pixelSize: 24 }
-        Text { x: 0; y: 34; width: 56; horizontalAlignment: Text.AlignRight; text: Math.round(Vehicle.rangeKm * Vehicle.unitK) + "\n" + Vehicle.distUnit; color: Theme.dim; font.pixelSize: 14; lineHeight: 0.9 }
-        Text { x: 0; y: 180; width: 90; horizontalAlignment: Text.AlignRight; text: Vehicle.charging ? "\u26A1\uFE0E CHARGING" : "RANGE"; color: Vehicle.charging ? Theme.ok : Theme.dim; font.pixelSize: 11; font.letterSpacing: 2 }
+        Text { x: 0; y: 0; width: 58; horizontalAlignment: Text.AlignRight; text: Math.round(Vehicle.battery) + "%"; color: Theme.text; font.pixelSize: 22 }
+        Text { x: 0; y: 30; width: 58; horizontalAlignment: Text.AlignRight; text: Math.round(Vehicle.rangeKm * Vehicle.unitK) + "\n" + Vehicle.distUnit; color: Theme.dim; font.pixelSize: 13; lineHeight: 0.9 }
+        Text { x: 0; y: 160; width: 92; horizontalAlignment: Text.AlignRight; text: Vehicle.charging ? "\u26A1\uFE0E CHARGING" : "RANGE"; color: Vehicle.charging ? Theme.ok : Theme.dim; font.pixelSize: 10; font.letterSpacing: 2 }
     }
 
     // ---------- ADAS road view ----------
     Canvas {
         id: road
-        x: 110; y: 495; width: 500; height: 145
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: telltalesRow.top
+        anchors.bottomMargin: 8
+        width: Math.min(cl.width - 32, 520)
+        height: Math.max(65, Math.min(145, cl.height - ring.y - ring.height - 55))
+        visible: height >= 65 && cl.height >= 380
         property real phase: 0
         FrameAnimation {
             running: App.awake && Vehicle.speed > 0.5
@@ -224,8 +249,10 @@ Item {
 
     // ---------- telltales ----------
     Row {
+        id: telltalesRow
         anchors.horizontalCenter: parent.horizontalCenter
-        y: 648; spacing: 20
+        anchors.bottom: parent.bottom; anchors.bottomMargin: 14
+        spacing: Math.min(20, Math.max(6, (cl.width - 240) / 7))
         Repeater {
             model: [
                 { g: "\u25D0", active: Vehicle.lowBeamOn,  col: Theme.ok },
@@ -238,7 +265,7 @@ Item {
             ]
             Text {
                 required property var modelData
-                text: modelData.g; font.pixelSize: 22
+                text: modelData.g; font.pixelSize: Math.round(Math.min(22, cl.width * 0.04))
                 color: modelData.active ? modelData.col : Theme.line
                 opacity: modelData.active ? 1 : 0.4
                 Behavior on color { ColorAnimation { duration: 200 } }

@@ -161,7 +161,9 @@ Item {
     // ---------- guidance banner ----------
     Rectangle {
         id: banner
-        x: 20; y: Vehicle.navActive ? 16 : -140; width: 400; height: 104; radius: 24
+        x: 20; y: Vehicle.navActive ? 16 : -140
+        width: Math.min(400, parent.width - 100)
+        height: np.height < 450 ? 86 : 104; radius: 24
         color: Theme.alpha("#0c111a", 0.92)
         border.color: Theme.alpha(Theme.ambient, 0.75); border.width: 1.5
         Behavior on y { NumberAnimation { duration: 500; easing.type: Easing.OutBack } }
@@ -173,22 +175,22 @@ Item {
         }
 
         Row {
-            anchors.verticalCenter: parent.verticalCenter; x: 22; spacing: 18
+            anchors.verticalCenter: parent.verticalCenter; x: 18; spacing: 14
             Text {
                 text: Vehicle.turnDir === "left" ? "\u2B05" : (Vehicle.turnDir === "right" ? "\u27A1" : (Vehicle.turnDir === "arrive" ? "\u2691" : "\u2B06"))
-                font.pixelSize: 58; color: Theme.ambient; anchors.verticalCenter: parent.verticalCenter
+                font.pixelSize: np.height < 450 ? 46 : 56; color: Theme.ambient; anchors.verticalCenter: parent.verticalCenter
             }
             Column {
                 anchors.verticalCenter: parent.verticalCenter; spacing: 2
                 Text {
-                    color: "white"; font.pixelSize: 32; font.weight: Font.DemiBold; font.family: Theme.family
+                    color: "white"; font.pixelSize: np.height < 450 ? 26 : 30; font.weight: Font.DemiBold; font.family: Theme.family
                     text: Vehicle.turnDist >= 1000 ? (Vehicle.turnDist / 1000 * Vehicle.unitK).toFixed(1) + " " + Vehicle.distUnit
                                                    : Math.round(Vehicle.turnDist * (Vehicle.useMiles ? 3.28084 : 1) / 10) * 10 + (Vehicle.useMiles ? " ft" : " m")
                 }
                 Text {
-                    color: Theme.dim; font.pixelSize: 17; font.family: Theme.family
+                    color: Theme.dim; font.pixelSize: 15; font.family: Theme.family
                     text: Vehicle.turnDir === "arrive" ? "Arrive at " + Vehicle.navDest : "onto " + Vehicle.turnStreet
-                    elide: Text.ElideRight; width: 260
+                    elide: Text.ElideRight; width: banner.width - 100
                 }
             }
         }
@@ -196,8 +198,9 @@ Item {
 
     // ---------- ETA card ----------
     Rectangle {
-        x: 20; y: Vehicle.navActive ? parent.height - 100 : parent.height + 20
-        width: 530; height: 84; radius: 24
+        x: 20; y: Vehicle.navActive ? parent.height - (np.height < 450 ? 76 : 96) : parent.height + 20
+        width: Math.min(520, parent.width - 40)
+        height: np.height < 450 ? 68 : 84; radius: 24
         color: Theme.alpha("#0c111a", 0.92)
         border.color: Theme.glassB; border.width: 1.5
         Behavior on y { NumberAnimation { duration: 500; easing.type: Easing.OutBack } }
@@ -208,42 +211,45 @@ Item {
         }
 
         Row {
-            x: 24; anchors.verticalCenter: parent.verticalCenter; spacing: 32
+            x: 20; anchors.verticalCenter: parent.verticalCenter
+            spacing: Math.min(32, Math.max(14, (parent.width - 240) / 4))
             Column {
-                Text { text: Vehicle.etaClock; color: "white"; font.pixelSize: 28; font.weight: Font.DemiBold; font.family: Theme.family }
-                Text { text: "arrival"; color: Theme.dim; font.pixelSize: 13; font.family: Theme.family }
+                Text { text: Vehicle.etaClock; color: "white"; font.pixelSize: np.height < 450 ? 22 : 26; font.weight: Font.DemiBold; font.family: Theme.family }
+                Text { text: "arrival"; color: Theme.dim; font.pixelSize: 12; font.family: Theme.family }
             }
             Column {
-                Text { text: Math.round(Vehicle.etaMin) + " min"; color: "white"; font.pixelSize: 28; font.weight: Font.DemiBold; font.family: Theme.family }
-                Text { text: "remaining"; color: Theme.dim; font.pixelSize: 13; font.family: Theme.family }
+                Text { text: Math.round(Vehicle.etaMin) + " min"; color: "white"; font.pixelSize: np.height < 450 ? 22 : 26; font.weight: Font.DemiBold; font.family: Theme.family }
+                Text { text: "remaining"; color: Theme.dim; font.pixelSize: 12; font.family: Theme.family }
             }
             Column {
-                Text { text: (Vehicle.remaining / 1000 * Vehicle.unitK).toFixed(1) + " " + Vehicle.distUnit; color: "white"; font.pixelSize: 28; font.weight: Font.DemiBold; font.family: Theme.family }
-                Text { text: "distance"; color: Theme.dim; font.pixelSize: 13; font.family: Theme.family }
+                Text { text: (Vehicle.remaining / 1000 * Vehicle.unitK).toFixed(1) + " " + Vehicle.distUnit; color: "white"; font.pixelSize: np.height < 450 ? 22 : 26; font.weight: Font.DemiBold; font.family: Theme.family }
+                Text { text: "distance"; color: Theme.dim; font.pixelSize: 12; font.family: Theme.family }
             }
         }
         Btn {
-            anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter
-            width: 66; height: 56; glyph: "\u2715"; tint: Theme.danger; active: true
+            anchors.right: parent.right; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter
+            width: 58; height: 50; glyph: "\u2715"; tint: Theme.danger; active: true
             onClicked: Vehicle.stopNav()
         }
     }
 
     // ---------- map controls ----------
     Column {
-        x: parent.width - 86; y: 16; spacing: 12
-        Btn { width: 70; height: 64; glyph: "\u2315"; onClicked: np.searchOpen = !np.searchOpen; active: np.searchOpen }
-        Btn { width: 70; height: 64; text: "+"; fontSize: 30; onClicked: np.zoom = Math.min(1.1, np.zoom * 1.3) }
-        Btn { width: 70; height: 64; text: "\u2212"; fontSize: 30; onClicked: np.zoom = Math.max(0.1, np.zoom / 1.3) }
-        Btn { width: 70; height: 64; text: "TMC"; fontSize: 15; active: np.traffic; onClicked: np.traffic = !np.traffic }
-        Btn { width: 70; height: 64; glyph: np.mapNight ? "\u263E" : "\u2600\uFE0E"; onClicked: np.mapNight = !np.mapNight }
+        anchors.right: parent.right; anchors.rightMargin: 16
+        y: 16; spacing: np.height < 450 ? 8 : 12
+        Btn { width: np.height < 450 ? 56 : 64; height: width; glyph: "\u2315"; onClicked: np.searchOpen = !np.searchOpen; active: np.searchOpen }
+        Btn { width: np.height < 450 ? 56 : 64; height: width; text: "+"; fontSize: 26; onClicked: np.zoom = Math.min(1.1, np.zoom * 1.3) }
+        Btn { width: np.height < 450 ? 56 : 64; height: width; text: "\u2212"; fontSize: 26; onClicked: np.zoom = Math.max(0.1, np.zoom / 1.3) }
+        Btn { width: np.height < 450 ? 56 : 64; height: width; text: "TMC"; fontSize: 14; active: np.traffic; onClicked: np.traffic = !np.traffic }
+        Btn { width: np.height < 450 ? 56 : 64; height: width; glyph: np.mapNight ? "\u263E" : "\u2600\uFE0E"; onClicked: np.mapNight = !np.mapNight }
     }
 
     // ---------- destination search sheet ----------
     Rectangle {
         id: sheet
-        x: np.searchOpen ? parent.width - 86 - 420 : parent.width
-        y: 16; width: 400; height: parent.height - 32; radius: 26
+        readonly property real sheetW: Math.min(380, parent.width - 100)
+        x: np.searchOpen ? parent.width - sheetW - 84 : parent.width + 20
+        y: 14; width: sheetW; height: parent.height - 28; radius: 26
         color: Theme.alpha("#0c111a", 0.96)
         border.color: Theme.glassB; border.width: 1.5
         Behavior on x { NumberAnimation { duration: 380; easing.type: Easing.OutCubic } }
@@ -255,7 +261,7 @@ Item {
 
         TextField {
             id: tf
-            x: 16; y: 16; width: parent.width - 32; height: 52
+            x: 16; y: 16; width: parent.width - 32; height: 50
             placeholderText: "Search destination"
             color: "white"; font.pixelSize: 19; placeholderTextColor: "#6d7889"
             font.family: Theme.family

@@ -39,7 +39,7 @@ Item {
         Rectangle {
             id: streak
             property real spd: 2600 + index * 380
-            y: 40 + index * 72
+            y: 30 + index * (at.height / 10)
             height: 3 + (index % 3) * 2
             width: 280 + (index % 4) * 140
             radius: height / 2
@@ -52,19 +52,25 @@ Item {
             }
             NumberAnimation on x {
                 running: at.active
-                from: -streak.width; to: 1920
+                from: -streak.width; to: at.width + 100
                 duration: streak.spd; loops: Animation.Infinite
             }
         }
     }
 
-    Glow { x: 960 - 700; y: 360 - 500; width: 1400; height: 1000; color: at.tone; strength: 0.25 }
+    Glow {
+        anchors.centerIn: parent
+        width: Math.min(1400, at.width * 0.9); height: Math.min(1000, at.height * 0.9)
+        color: at.tone; strength: 0.25
+    }
 
     // emblem rings
     Item {
         id: emblem
-        x: 960 - 140; y: 70; width: 280; height: 280
-        scale: 1 + at.burst * 3
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: Math.max(30, at.height * 0.10)
+        width: 280; height: 280
+        scale: (1 + at.burst * 3) * Math.min(1.0, at.height / 680)
         opacity: 1 - at.burst
         Repeater {
             model: 3
@@ -109,7 +115,10 @@ Item {
     // car silhouette with sweeping highlight
     Canvas {
         id: car
-        x: 960 - 320; y: 395; width: 640; height: 190
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: Math.max(emblem.y + 240, at.height * 0.52)
+        width: 640; height: 190
+        scale: Math.min(1.0, at.width / 700)
         property real sweep: at.bandX
         onSweepChanged: if (at.active) requestPaint()
         onPaint: {
@@ -142,7 +151,8 @@ Item {
     // welcome light carpet under the car
     Rectangle {
         id: carpet
-        x: 960 - width / 2; y: 590; height: 6; radius: 3
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: car.y + 195; height: 6; radius: 3
         width: 120 + 380 * (0.5 + 0.5 * Math.sin(at.bandX / 90))
         gradient: Gradient {
             orientation: Gradient.Horizontal
@@ -156,25 +166,26 @@ Item {
     // clock + welcome text
     Column {
         anchors.horizontalCenter: parent.horizontalCenter
-        y: 604; spacing: 4
+        anchors.bottom: hint.top; anchors.bottomMargin: 14
+        spacing: 4
         opacity: 1 - at.burst
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: Vehicle.timeText
-            font.pixelSize: 60; font.weight: Font.Thin; color: "white"
+            font.pixelSize: at.height < 550 ? 44 : 56; font.weight: Font.Thin; color: "white"
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: Vehicle.dateText
-            font.pixelSize: 18; color: "#8aa2be"; font.letterSpacing: 2.5
+            font.pixelSize: at.height < 550 ? 15 : 18; color: "#8aa2be"; font.letterSpacing: 2.5
         }
     }
     Text {
         id: hint
         anchors.horizontalCenter: parent.horizontalCenter
-        y: 20
+        anchors.bottom: parent.bottom; anchors.bottomMargin: 20
         text: "Touch the screen or press any key to start"
-        font.pixelSize: 18; font.letterSpacing: 2.5; color: "#7a90aa"
+        font.pixelSize: at.height < 550 ? 15 : 18; font.letterSpacing: 2.5; color: "#7a90aa"
         SequentialAnimation on opacity {
             running: at.active
             loops: Animation.Infinite

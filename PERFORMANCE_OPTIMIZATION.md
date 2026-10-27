@@ -107,3 +107,45 @@ Measurements taken via `QSG_RENDER_TIMING=1` and offscreen headless runtime veri
 9. **Qt QML Hex Color Format is `#AARRGGBB` (Not CSS `#RRGGBBAA`)**:
    In Qt Quick, 8-digit hex color strings are parsed as `#AARRGGBB`. Writing `"#ffffff0d"` (intended as white with 5% alpha in CSS) parses as `Alpha=0xff, Red=0xff, Green=0xff, Blue=0x0d`—producing opaque neon yellow. Always use `Qt.rgba(r, g, b, a)` or `Theme.alpha()` to avoid color distortion.
 
+---
+
+## 6. Responsive Multi-Form-Factor Automotive Cockpit Architecture
+
+### A. The Problem with Fixed Virtual Stage Letterboxing
+The original implementation scaled a fixed 1920×720 virtual canvas using `Math.min(root.width / 1920, root.height / 720)`. This caused severe limitations in real automotive environments:
+* **Wasted Screen Real Estate**: On standard 16:9 displays (e.g. 1920×1080), 360 vertical pixels were wasted in black bars.
+* **Complete Failure on Portrait/Vertical Displays**: On vertical displays (e.g. 900×1200 or 1080×1920, like Tesla Model S/3/Y or Ford Mustang Mach-E), the entire HMI shrunk into a tiny horizontal band in the middle with huge black bars above and below.
+* **Lack of Cockpit Focus Modes**: Drivers could not expand the Instrument Cluster or Infotainment Center Display into a focused full-width mode.
+
+### B. Fluid Responsive Cockpit Layout Engine
+In [Main.qml](file:///home/kakarot/Desktop/VSCode/IOT/qt/DriveHMI/Main.qml), the letterboxing item was replaced with a fluid coordinate layout engine:
+1. **Orientation & Form-Factor Detection**:
+   * `isPortrait: height > width * 0.92`: Automatically switches from side-by-side cockpit to vertical stacked cockpit (Cluster on top 36%, Infotainment at bottom 64%).
+   * `isCompact: width < 1280 || height < 700`: Automatically adjusts gauge scales, collapses secondary status items, and uses compact navigation cards.
+2. **Interactive Cockpit Focus Modes**:
+   * `split` (Dual View): Standard side-by-side cockpit layout (Cluster takes 38% width, Infotainment takes remaining width).
+   * `cluster` (Instrument Cluster Focus): Expands the digital cluster across the full screen with oversized high-visibility telemetry.
+   * `infotainment` (Center Display Focus): Minimizes the cluster into a compact HUD strip and expands infotainment/navigation to 100% width.
+3. **Smooth Geometric Transitions**:
+   Position and dimension transitions (`x`, `y`, `width`, `height`) use `NumberAnimation` with `Easing.OutCubic` (380 ms) for smooth animations during layout transitions.
+
+### C. Resolution Presets & Quick Switching
+Quick display presets can be triggered via keyboard shortcuts or the interactive preset selector in [StatusBar.qml](file:///home/kakarot/Desktop/VSCode/IOT/qt/DriveHMI/StatusBar.qml):
+* **`F1`**: 1920 × 720 (Panoramic 24:9 automotive ultra-wide)
+* **`F2`**: 1920 × 1080 (Full HD 16:9 automotive display)
+* **`F3`**: 1600 × 900 (Standard 16:9 cockpit display)
+* **`F4`**: 900 × 1200 (Portrait / Vertical Tesla/Mach-E style display)
+* **`F9`**: Toggle Cluster Focus Mode
+* **`F10`**: Toggle Infotainment Focus Mode
+* **`F11`**: Toggle Fullscreen Window
+
+### D. Responsive Component Adaptations
+* **[SpeedRing.qml](file:///home/kakarot/Desktop/VSCode/IOT/qt/DriveHMI/SpeedRing.qml)**: Fully resolution-independent gauge (`sFactor = width / 440`). Dynamic speed and power arcs, tick marks, needle dots, and typography scale to any container size while retaining GPU-accelerated `QtQuick.Shapes` and cached background rendering (`layer.enabled: true`).
+* **[Cluster.qml](file:///home/kakarot/Desktop/VSCode/IOT/qt/DriveHMI/Cluster.qml)**: Fluid bounds (`implicitWidth: 720; implicitHeight: 680`). ADAS road canvas, speed ring diameter, telltale status strip, and telemetry columns adaptively anchor and scale.
+* **[StatusBar.qml](file:///home/kakarot/Desktop/VSCode/IOT/qt/DriveHMI/StatusBar.qml)**: Dynamic flex layout with Cockpit Mode Selector Pill (`[Dual | Cluster | Center]`), Resolution Preset Selector, and adaptive right telemetry.
+* **[BottomBar.qml](file:///home/kakarot/Desktop/VSCode/IOT/qt/DriveHMI/BottomBar.qml)**: 3 responsive flex zones (driver HVAC, central media/home pill/auto-flexing volume slider, passenger HVAC) collapsing on narrow screens.
+* **Infotainment Pages ([HomePage](file:///home/kakarot/Desktop/VSCode/IOT/qt/DriveHMI/HomePage.qml), [NavPage](file:///home/kakarot/Desktop/VSCode/IOT/qt/DriveHMI/NavPage.qml), [MediaPage](file:///home/kakarot/Desktop/VSCode/IOT/qt/DriveHMI/MediaPage.qml), [ClimatePage](file:///home/kakarot/Desktop/VSCode/IOT/qt/DriveHMI/ClimatePage.qml), [EnergyPage](file:///home/kakarot/Desktop/VSCode/IOT/qt/DriveHMI/EnergyPage.qml), [DrivePage](file:///home/kakarot/Desktop/VSCode/IOT/qt/DriveHMI/DrivePage.qml), [VehiclePage](file:///home/kakarot/Desktop/VSCode/IOT/qt/DriveHMI/VehiclePage.qml), [SettingsPage](file:///home/kakarot/Desktop/VSCode/IOT/qt/DriveHMI/SettingsPage.qml), [AppsPage](file:///home/kakarot/Desktop/VSCode/IOT/qt/DriveHMI/AppsPage.qml))**:
+  * Fluid width and height bindings (`implicitWidth: 1120; implicitHeight: 520`).
+  * Dynamic multi-column to single-column adaptation (`width > 840 ? 2 : 1`, `width > 920 ? 3 : 2`).
+  * Integrated `Flickable` containers with `StopAtBounds` to guarantee zero clipping or coordinate overflow across compact and portrait screen sizes.
+

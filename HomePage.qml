@@ -2,7 +2,9 @@ import QtQuick
 
 Item {
     id: hp
-    width: 1120; height: 520
+    implicitWidth: 1120; implicitHeight: 520
+
+    readonly property real cardWidth: Math.min(420, Math.max(270, (lv.width - 44) / Math.max(1, Math.min(3, Math.floor(lv.width / 310)))))
 
     readonly property var tiles: [
         { key: "nav",     title: "Navigation",  glyph: Theme.g.nav,     tint: "#00a8ff" },
@@ -29,13 +31,13 @@ Item {
     ListView {
         id: lv
         anchors.fill: parent
-        anchors.bottomMargin: 36
+        anchors.bottomMargin: 30
         orientation: ListView.Horizontal
-        spacing: 22
+        spacing: 20
         model: hp.tiles
         highlightRangeMode: ListView.StrictlyEnforceRange
-        preferredHighlightBegin: (width - 360) / 2
-        preferredHighlightEnd: (width + 360) / 2
+        preferredHighlightBegin: (width - hp.cardWidth) / 2
+        preferredHighlightEnd: (width + hp.cardWidth) / 2
         highlightMoveDuration: 420
         snapMode: ListView.SnapToItem
         boundsBehavior: Flickable.StopAtBounds
@@ -46,7 +48,7 @@ Item {
             id: d
             required property int index
             required property var modelData
-            width: 360; height: lv.height
+            width: hp.cardWidth; height: lv.height
             readonly property bool cur: ListView.isCurrentItem
 
             Component.onCompleted: entry.start()
@@ -62,9 +64,9 @@ Item {
             Rectangle {
                 id: card
                 anchors.fill: parent
-                anchors.topMargin: 14; anchors.bottomMargin: 14
+                anchors.topMargin: 12; anchors.bottomMargin: 12
                 radius: Theme.radiusLg
-                scale: d.cur ? 1.0 : 0.87
+                scale: d.cur ? 1.0 : 0.88
                 opacity: d.cur ? 1.0 : 0.60
                 Behavior on scale { NumberAnimation { duration: 340; easing.type: Easing.OutCubic } }
                 Behavior on opacity { NumberAnimation { duration: 340 } }
@@ -79,22 +81,22 @@ Item {
                 // watermark glyph
                 Text {
                     anchors.right: parent.right; anchors.rightMargin: 18
-                    anchors.top: parent.top; anchors.topMargin: 60
-                    text: d.modelData.glyph; font.pixelSize: 100
+                    anchors.top: parent.top; anchors.topMargin: 50
+                    text: d.modelData.glyph; font.pixelSize: Math.round(Math.min(100, card.width * 0.28))
                     color: Theme.alpha(d.modelData.tint, d.cur ? 0.12 : 0.07)
                 }
 
                 // title
                 Text {
-                    x: 28; y: 24
+                    x: 24; y: 22
                     text: d.modelData.title
-                    color: Theme.text; font.pixelSize: 26; font.family: Theme.family
+                    color: Theme.text; font.pixelSize: 24; font.family: Theme.family
                     font.weight: Font.DemiBold; font.letterSpacing: 0.2
                 }
 
                 Loader {
                     id: hero
-                    x: 20; y: 80; width: parent.width - 40; height: 260
+                    x: 18; y: 72; width: parent.width - 36; height: Math.max(140, parent.height - 156)
                     sourceComponent: {
                         switch (d.modelData.key) {
                         case "nav": return heroNav

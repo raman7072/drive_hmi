@@ -4,10 +4,17 @@ import QtQuick.Window
 Window {
     id: root
     width: 1600; height: 600
-    minimumWidth: 800; minimumHeight: 300
+    minimumWidth: 720; minimumHeight: 480
     visible: true
-    title: "Drive HMI \u2013 Cluster & Infotainment"
+    title: "Drive HMI \u2013 Adaptive Cockpit & Infotainment"
     color: "#000000"
+
+    onWidthChanged: App.displayWidth = width
+    onHeightChanged: App.displayHeight = height
+    Component.onCompleted: {
+        App.displayWidth = width
+        App.displayHeight = height
+    }
 
     property string pendingPage: "home"
     readonly property var titles: ({
@@ -21,12 +28,68 @@ Window {
         energy: "EnergyPage.qml", apps: "AppsPage.qml", settings: "SettingsPage.qml"
     })
 
-    // ---------- 1920x720 virtual stage, scaled to fit ----------
+    // ---------- Adaptive display metrics ----------
+    readonly property bool isPortrait: root.height > root.width * 0.92
+    readonly property bool isCompact: root.width < 1120 || root.height < 540
+    readonly property int pad: isCompact ? 10 : 16
+    readonly property int gap: isCompact ? 10 : 16
+
+    // Target sizes and positions for Cluster
+    readonly property real clusterTargetW: {
+        if (isPortrait) {
+            return App.layoutMode === "infotainment" ? 0 : (root.width - 2 * pad)
+        } else {
+            if (App.layoutMode === "cluster") return root.width - 2 * pad
+            if (App.layoutMode === "infotainment") return 0
+            return Math.max(380, Math.min(760, Math.round(root.width * 0.38)))
+        }
+    }
+    readonly property real clusterTargetH: {
+        if (isPortrait) {
+            if (App.layoutMode === "cluster") return root.height - 2 * pad
+            if (App.layoutMode === "infotainment") return 0
+            return Math.max(260, Math.min(420, Math.round(root.height * 0.36)))
+        } else {
+            return root.height - 2 * pad
+        }
+    }
+    readonly property real clusterTargetX: pad
+    readonly property real clusterTargetY: pad
+
+    // Target sizes and positions for Control (Infotainment)
+    readonly property real controlTargetW: {
+        if (isPortrait) {
+            return App.layoutMode === "cluster" ? 0 : (root.width - 2 * pad)
+        } else {
+            if (App.layoutMode === "cluster") return 0
+            if (App.layoutMode === "infotainment") return root.width - 2 * pad
+            return root.width - clusterTargetW - gap - 2 * pad
+        }
+    }
+    readonly property real controlTargetH: {
+        if (isPortrait) {
+            if (App.layoutMode === "cluster") return 0
+            if (App.layoutMode === "infotainment") return root.height - 2 * pad
+            return root.height - clusterTargetH - gap - 2 * pad
+        } else {
+            return root.height - 2 * pad
+        }
+    }
+    readonly property real controlTargetX: {
+        if (isPortrait) return pad
+        return App.layoutMode === "infotainment" ? pad : (pad + clusterTargetW + gap)
+    }
+    readonly property real controlTargetY: {
+        if (isPortrait) {
+            return App.layoutMode === "infotainment" ? pad : (pad + clusterTargetH + gap)
+        }
+        return pad
+    }
+
+    // ---------- Fluid adaptive stage ----------
     Item {
         id: stage
-        width: 1920; height: 720
-        anchors.centerIn: parent
-        scale: Math.min(root.width / width, root.height / height)
+        anchors.fill: parent
         focus: true
 
         Keys.onPressed: (e) => root.handleKey(e)
@@ -38,11 +101,17 @@ Window {
 
         Rectangle { anchors.fill: parent; color: Theme.bg }
 
-        // ambient light strip (animated)
-        Glow { x: -250; y: 380; width: 1300; height: 560; color: Theme.ambient; strength: 0.18 }
-        Glow { x: 850; y: 400; width: 1300; height: 560; color: Theme.ambient; strength: 0.14 }
+        // ambient lighting strips & glows
+        Glow {
+            x: -200; y: parent.height - 350; width: parent.width * 0.7; height: 500
+            color: Theme.ambient; strength: 0.16
+        }
+        Glow {
+            x: parent.width * 0.5; y: parent.height - 350; width: parent.width * 0.7; height: 500
+            color: Theme.ambient; strength: 0.14
+        }
         Rectangle {
-            x: 0; y: 708; width: parent.width; height: 4
+            anchors.bottom: parent.bottom; width: parent.width; height: 4
             gradient: Gradient {
                 orientation: Gradient.Horizontal
                 GradientStop { position: 0; color: "transparent" }
@@ -53,41 +122,67 @@ Window {
             Behavior on opacity { NumberAnimation { duration: 800 } }
         }
 
-        // ---------- driver cluster ----------
+        // ---------- driver cluster container ----------
         Rectangle {
-            x: 20; y: 20; width: 720; height: 680; radius: 36
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: Theme.panel }
-                GradientStop { position: 1.0; color: Theme.bg }
-            }
-            border.color: Theme.line; border.width: 1
-        }
-        // subtle inner glow ring
-        Rectangle {
-            x: 20; y: 20; width: 720; height: 680; radius: 36
-            color: "transparent"
-            border.color: Theme.alpha(Theme.ambient, 0.08); border.width: 2
-            scale: 0.98
-        }
-        Cluster {
-            id: cluster
-            x: 20; y: 20
-            opacity: App.awake ? 1 : 0
-            scale: App.awake ? 1 : 0.94
-            Behavior on opacity { NumberAnimation { duration: 900 } }
-            Behavior on scale { NumberAnimation { duration: 900; easing.type: Easing.OutCubic } }
-        }
-
-        // ---------- control display ----------
-        Rectangle {
-            id: controlContainer
-            x: 780; y: 20; width: 1120; height: 680; radius: 36
+            id: clusterContainer
+            x: root.clusterTargetX; y: root.clusterTargetY
+            width: root.clusterTargetW; height: root.clusterTargetH
+            radius: root.isCompact ? 24 : 34
             gradient: Gradient {
                 GradientStop { position: 0.0; color: Theme.panel }
                 GradientStop { position: 1.0; color: Theme.bg }
             }
             border.color: Theme.line; border.width: 1
             clip: true
+            visible: width > 10 && height > 10
+
+            Behavior on x { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+            Behavior on y { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+            Behavior on width { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+            Behavior on height { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+
+            // subtle inner ambient glow
+            Rectangle {
+                anchors.fill: parent; radius: parent.radius; color: "transparent"
+                border.color: Theme.alpha(Theme.ambient, 0.08); border.width: 2
+                scale: 0.985
+            }
+
+            Cluster {
+                id: cluster
+                anchors.fill: parent
+                opacity: App.awake ? 1 : 0
+                scale: App.awake ? 1 : 0.94
+                Behavior on opacity { NumberAnimation { duration: 900 } }
+                Behavior on scale { NumberAnimation { duration: 900; easing.type: Easing.OutCubic } }
+            }
+        }
+
+        // ---------- control display (infotainment) container ----------
+        Rectangle {
+            id: controlContainer
+            x: root.controlTargetX; y: root.controlTargetY
+            width: root.controlTargetW; height: root.controlTargetH
+            radius: root.isCompact ? 24 : 34
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: Theme.panel }
+                GradientStop { position: 1.0; color: Theme.bg }
+            }
+            border.color: Theme.line; border.width: 1
+            clip: true
+            visible: width > 10 && height > 10
+
+            Behavior on x { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+            Behavior on y { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+            Behavior on width { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+            Behavior on height { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+
+            // subtle inner glow
+            Rectangle {
+                anchors.fill: parent; radius: parent.radius; color: "transparent"
+                border.color: Theme.alpha(Theme.ambient, 0.08); border.width: 2
+                scale: 0.985
+            }
 
             Item {
                 id: control
@@ -95,24 +190,33 @@ Window {
                 opacity: App.awake ? 1 : 0
                 Behavior on opacity { NumberAnimation { duration: 700 } }
 
-                StatusBar { id: statusBar; title: root.titles[App.page] }
+                StatusBar {
+                    id: statusBar
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 64
+                    title: root.titles[App.page]
+                }
 
                 Loader {
                     id: pageLoader
-                    y: 64; width: 1120; height: 520
+                    anchors.top: statusBar.bottom
+                    anchors.bottom: bottomBar.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
                     source: root.files["home"]
                     clip: true
                 }
 
-                BottomBar { y: 584 }
+                BottomBar {
+                    id: bottomBar
+                    anchors.bottom: parent.bottom
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 96
+                }
             }
-        }
-        // subtle inner glow ring
-        Rectangle {
-            x: 780; y: 20; width: 1120; height: 680; radius: 36
-            color: "transparent"
-            border.color: Theme.alpha(Theme.ambient, 0.08); border.width: 2
-            scale: 0.98
         }
 
         // page transition
@@ -146,8 +250,10 @@ Window {
         Rectangle {
             id: callPop
             z: 70
-            width: 580; height: 136; radius: 32
-            x: 1360 - width / 2
+            width: Math.min(560, root.width - 40); height: 136; radius: 32
+            x: (controlContainer.visible && controlContainer.width > 300)
+               ? (controlContainer.x + (controlContainer.width - width) / 2)
+               : ((root.width - width) / 2)
             y: Vehicle.callState === "incoming" && App.awake ? 38 : -210
             color: Theme.glass
             border.color: Theme.ok; border.width: 1.5
@@ -158,7 +264,6 @@ Window {
 
             Row {
                 x: 24; anchors.verticalCenter: parent.verticalCenter; spacing: 18
-                // Avatar circle
                 Rectangle {
                     width: 72; height: 72; radius: 36
                     color: Theme.alpha(Theme.ok, 0.20); border.color: Theme.ok; border.width: 2
@@ -196,8 +301,10 @@ Window {
             property string msg: ""
             property string glyph: ""
             height: 58; radius: 29
-            width: tRow.width + 60
-            x: 1360 - width / 2
+            width: Math.min(tRow.width + 60, root.width - 40)
+            x: (controlContainer.visible && controlContainer.width > 300)
+               ? (controlContainer.x + (controlContainer.width - width) / 2)
+               : ((root.width - width) / 2)
             y: -120
             color: Theme.alpha(Theme.panel, 0.92)
             border.color: Theme.alpha(Theme.ambient, 0.65); border.width: 1
@@ -214,12 +321,13 @@ Window {
             }
         }
 
-        VoiceOverlay { id: voice; z: 90; width: 1920; height: 720 }
+        VoiceOverlay { id: voice; z: 90; anchors.fill: parent }
 
         // ---------- landing / attract screen ----------
         AttractScreen {
             id: attract
             z: 100
+            anchors.fill: parent
             opacity: App.awake ? 0 : 1
             visible: opacity > 0.01
             Behavior on opacity { NumberAnimation { duration: 800; easing.type: Easing.InOutCubic } }
@@ -276,6 +384,14 @@ Window {
             toastAnim.restart()
         }
         function onVoiceRequested() { if (App.awake) voice.show() }
+        function onResizeRequested(w, h) {
+            root.visibility = Window.Windowed
+            root.width = w
+            root.height = h
+        }
+        function onFullscreenRequested() {
+            root.visibility = root.visibility === Window.FullScreen ? Window.Windowed : Window.FullScreen
+        }
         function onKeyPressed(k) { }
     }
     Timer { id: armTimer; interval: 1200; onTriggered: attract.armed = true }
@@ -301,6 +417,12 @@ Window {
         case Qt.Key_S: Vehicle.manual = true; Vehicle.brake = 1; break
         case Qt.Key_Z: Vehicle.leftSignal = !Vehicle.leftSignal; Vehicle.rightSignal = false; break
         case Qt.Key_X: Vehicle.rightSignal = !Vehicle.rightSignal; Vehicle.leftSignal = false; break
+        case Qt.Key_F1: App.resizeTo(1920, 720); break
+        case Qt.Key_F2: App.resizeTo(1920, 1080); break
+        case Qt.Key_F3: App.resizeTo(900, 1200); break
+        case Qt.Key_F4: App.resizeTo(1024, 600); break
+        case Qt.Key_F9: App.setLayoutMode(App.layoutMode === "cluster" ? "split" : "cluster"); break
+        case Qt.Key_F10: App.setLayoutMode(App.layoutMode === "infotainment" ? "split" : "infotainment"); break
         case Qt.Key_F11:
             root.visibility = root.visibility === Window.FullScreen ? Window.Windowed : Window.FullScreen
             break
