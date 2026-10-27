@@ -6,16 +6,24 @@ Item {
 
     Glow { anchors.centerIn: ring; width: 720; height: 720; color: Theme.ambient; strength: 0.20 }
 
-    // ---------- top row ----------
+    // ---------- top row: gear selector ----------
     Row {
-        x: 30; y: 20; spacing: 16
+        x: 30; y: 20; spacing: 10
         Repeater {
             model: ["P", "R", "N", "D"]
-            Text {
-                text: modelData
-                font.pixelSize: 26
-                font.bold: Vehicle.gear === modelData
-                color: Vehicle.gear === modelData ? Theme.ambient : Theme.dim
+            Rectangle {
+                width: 38; height: 38; radius: 10
+                color: Vehicle.gear === modelData ? Theme.alpha(Theme.ambient, 0.22) : "transparent"
+                border.color: Vehicle.gear === modelData ? Theme.ambient : "transparent"
+                border.width: 1
+                Text {
+                    anchors.centerIn: parent
+                    text: modelData
+                    font.pixelSize: 22
+                    font.weight: Vehicle.gear === modelData ? Font.Bold : Font.Normal
+                    color: Vehicle.gear === modelData ? Theme.ambient : Theme.dim
+                    Behavior on color { ColorAnimation { duration: 200 } }
+                }
                 Behavior on color { ColorAnimation { duration: 200 } }
             }
         }
@@ -50,14 +58,19 @@ Item {
 
     // ---------- turn signals ----------
     Text {
-        x: 44; y: 74; text: "\u2B05"; font.pixelSize: 52
+        x: 38; y: 72; text: "\u2B05"; font.pixelSize: 54
         color: Theme.ok
-        opacity: (Vehicle.leftSignal || Vehicle.hazard) ? (Vehicle.blink ? 1 : 0.12) : 0.07
+        opacity: (Vehicle.leftSignal || Vehicle.hazard) ? (Vehicle.blink ? 1 : 0.10) : 0.06
+        Behavior on opacity { NumberAnimation { duration: 80 } }
+        // drop shadow for blink glow
+        layer.enabled: (Vehicle.leftSignal || Vehicle.hazard) && Vehicle.blink
     }
     Text {
-        x: 624; y: 74; text: "\u27A1"; font.pixelSize: 52
+        x: 626; y: 72; text: "\u27A1"; font.pixelSize: 54
         color: Theme.ok
-        opacity: (Vehicle.rightSignal || Vehicle.hazard) ? (Vehicle.blink ? 1 : 0.12) : 0.07
+        opacity: (Vehicle.rightSignal || Vehicle.hazard) ? (Vehicle.blink ? 1 : 0.10) : 0.06
+        Behavior on opacity { NumberAnimation { duration: 80 } }
+        layer.enabled: (Vehicle.rightSignal || Vehicle.hazard) && Vehicle.blink
     }
 
     // ---------- ring ----------
@@ -78,12 +91,12 @@ Item {
     // ---------- ACC chip ----------
     Rectangle {
         visible: Vehicle.acc
-        x: 74; y: 130; width: 70; height: 56; radius: 14
-        color: Theme.alpha(Theme.ok, 0.18); border.color: Theme.ok
+        x: 70; y: 128; width: 76; height: 58; radius: Theme.radiusSm
+        color: Theme.alpha(Theme.ok, 0.15); border.color: Theme.ok; border.width: 1
         Column {
-            anchors.centerIn: parent
-            Text { anchors.horizontalCenter: parent.horizontalCenter; text: "ACC"; color: Theme.ok; font.pixelSize: 14; font.bold: true }
-            Text { anchors.horizontalCenter: parent.horizontalCenter; text: Math.round(Vehicle.cruiseSpeed * Vehicle.unitK); color: Theme.text; font.pixelSize: 20 }
+            anchors.centerIn: parent; spacing: 2
+            Text { anchors.horizontalCenter: parent.horizontalCenter; text: "ACC"; color: Theme.ok; font.pixelSize: 13; font.weight: Font.Bold; font.letterSpacing: 1.5 }
+            Text { anchors.horizontalCenter: parent.horizontalCenter; text: Math.round(Vehicle.cruiseSpeed * Vehicle.unitK); color: Theme.text; font.pixelSize: 22; font.weight: Font.Medium }
         }
     }
 
@@ -212,13 +225,25 @@ Item {
     // ---------- telltales ----------
     Row {
         anchors.horizontalCenter: parent.horizontalCenter
-        y: 648; spacing: 22
-        Text { text: "\u25D0"; font.pixelSize: 22; color: Vehicle.lowBeamOn ? Theme.ok : Theme.line }
-        Text { text: "\u25D1"; font.pixelSize: 22; color: Vehicle.highBeam ? "#4aa3ff" : Theme.line }
-        Text { text: "\u2263"; font.pixelSize: 22; color: Vehicle.fogLight ? Theme.ok : Theme.line }
-        Text { text: "\u26A0"; font.pixelSize: 22; color: Vehicle.hazard ? (Vehicle.blink ? Theme.danger : Theme.line) : Theme.line }
-        Text { text: "\u26BF"; font.pixelSize: 22; color: Vehicle.locked ? Theme.dim : Theme.warn }
-        Text { text: "\u2B58"; font.pixelSize: 22; color: Vehicle.alerts[0] === "All systems OK" ? Theme.line : Theme.warn }
-        Text { text: "\u25CB"; font.pixelSize: 22; color: (Vehicle.tires[0] < 2.0 || Vehicle.tires[1] < 2.0 || Vehicle.tires[2] < 2.0 || Vehicle.tires[3] < 2.0) ? Theme.warn : Theme.line }
+        y: 648; spacing: 20
+        Repeater {
+            model: [
+                { g: "\u25D0", active: Vehicle.lowBeamOn,  col: Theme.ok },
+                { g: "\u25D1", active: Vehicle.highBeam,   col: "#4aa3ff" },
+                { g: "\u2263", active: Vehicle.fogLight,   col: Theme.ok },
+                { g: "\u26A0", active: Vehicle.hazard && Vehicle.blink, col: Theme.danger },
+                { g: "\u26BF", active: !Vehicle.locked,    col: Theme.warn },
+                { g: "\u2B58", active: Vehicle.alerts[0] !== "All systems OK", col: Theme.warn },
+                { g: "\u25CB", active: (Vehicle.tires[0] < 2.0 || Vehicle.tires[1] < 2.0 || Vehicle.tires[2] < 2.0 || Vehicle.tires[3] < 2.0), col: Theme.warn }
+            ]
+            Text {
+                required property var modelData
+                text: modelData.g; font.pixelSize: 22
+                color: modelData.active ? modelData.col : Theme.line
+                opacity: modelData.active ? 1 : 0.4
+                Behavior on color { ColorAnimation { duration: 200 } }
+                Behavior on opacity { NumberAnimation { duration: 200 } }
+            }
+        }
     }
 }

@@ -5,15 +5,15 @@ Item {
     width: 1120; height: 520
 
     readonly property var tiles: [
-        { key: "nav",     title: "Navigation",  glyph: Theme.g.nav,     tint: "#2f80ed" },
-        { key: "media",   title: "Media",       glyph: Theme.g.media,   tint: "#e0457b" },
-        { key: "phone",   title: "Phone",       glyph: Theme.g.phone,   tint: "#27ae60" },
-        { key: "climate", title: "Climate",     glyph: Theme.g.climate, tint: "#2d9cdb" },
-        { key: "vehicle", title: "Vehicle",     glyph: Theme.g.vehicle, tint: "#9b51e0" },
-        { key: "drive",   title: "Driving Assistant", glyph: Theme.g.drive, tint: "#f2994a" },
-        { key: "energy",  title: "Energy",      glyph: Theme.g.energy,  tint: "#56ccf2" },
-        { key: "apps",    title: "Apps",        glyph: Theme.g.apps,    tint: "#bb6bd9" },
-        { key: "settings", title: "Settings",   glyph: Theme.g.settings, tint: "#828fa3" }
+        { key: "nav",     title: "Navigation",  glyph: Theme.g.nav,     tint: "#00a8ff" },
+        { key: "media",   title: "Media",       glyph: Theme.g.media,   tint: "#ec4899" },
+        { key: "phone",   title: "Phone",       glyph: Theme.g.phone,   tint: "#10b981" },
+        { key: "climate", title: "Climate",     glyph: Theme.g.climate, tint: "#0ea5e9" },
+        { key: "vehicle", title: "Vehicle",     glyph: Theme.g.vehicle, tint: "#8b5cf6" },
+        { key: "drive",   title: "Driving Assistant", glyph: Theme.g.drive, tint: "#f97316" },
+        { key: "energy",  title: "Energy",      glyph: Theme.g.energy,  tint: "#06b6d4" },
+        { key: "apps",    title: "Apps",        glyph: Theme.g.apps,    tint: "#a855f7" },
+        { key: "settings", title: "Settings",   glyph: Theme.g.settings, tint: "#64748b" }
     ]
 
     Connections {
@@ -63,20 +63,34 @@ Item {
                 id: card
                 anchors.fill: parent
                 anchors.topMargin: 14; anchors.bottomMargin: 14
-                radius: 30
-                scale: d.cur ? 1.0 : 0.88
-                opacity: d.cur ? 1.0 : 0.65
-                Behavior on scale { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
-                Behavior on opacity { NumberAnimation { duration: 320 } }
-                border.width: d.cur ? 2 : 1
-                border.color: d.cur ? d.modelData.tint : Theme.line
+                radius: Theme.radiusLg
+                scale: d.cur ? 1.0 : 0.87
+                opacity: d.cur ? 1.0 : 0.60
+                Behavior on scale { NumberAnimation { duration: 340; easing.type: Easing.OutCubic } }
+                Behavior on opacity { NumberAnimation { duration: 340 } }
+                border.width: d.cur ? 1.5 : 0
+                border.color: d.cur ? Theme.alpha(d.modelData.tint, 0.8) : "transparent"
                 gradient: Gradient {
-                    GradientStop { position: 0.0; color: Theme.alpha(d.modelData.tint, d.cur ? 0.42 : 0.2) }
-                    GradientStop { position: 0.6; color: Theme.panel2 }
+                    GradientStop { position: 0.0; color: Theme.alpha(d.modelData.tint, d.cur ? 0.38 : 0.16) }
+                    GradientStop { position: 0.45; color: Theme.panel2 }
                     GradientStop { position: 1.0; color: Theme.panel }
                 }
 
-                Text { x: 28; y: 24; text: d.modelData.title; color: Theme.text; font.pixelSize: 28; font.family: Theme.family }
+                // watermark glyph
+                Text {
+                    anchors.right: parent.right; anchors.rightMargin: 18
+                    anchors.top: parent.top; anchors.topMargin: 60
+                    text: d.modelData.glyph; font.pixelSize: 100
+                    color: Theme.alpha(d.modelData.tint, d.cur ? 0.12 : 0.07)
+                }
+
+                // title
+                Text {
+                    x: 28; y: 24
+                    text: d.modelData.title
+                    color: Theme.text; font.pixelSize: 26; font.family: Theme.family
+                    font.weight: Font.DemiBold; font.letterSpacing: 0.2
+                }
 
                 Loader {
                     id: hero
@@ -93,29 +107,37 @@ Item {
                     onLoaded: { item.glyph = d.modelData.glyph; item.tint = d.modelData.tint }
                 }
 
+                // subtitle
                 Text {
                     x: 28; y: parent.height - 78; width: parent.width - 56
                     elide: Text.ElideRight
-                    color: Theme.dim; font.pixelSize: 20
+                    color: Theme.dim; font.pixelSize: 18
                     text: {
                         switch (d.modelData.key) {
-                        case "nav": return Vehicle.navActive ? Vehicle.navDest + "  \u00B7  ETA " + Vehicle.etaClock : "Where to?"
-                        case "media": return Vehicle.nowPlaying.title + (Vehicle.playing ? "  \u25B6" : "  \u275A\u275A")
+                        case "nav": return Vehicle.navActive ? Vehicle.navDest + "  ·  ETA " + Vehicle.etaClock : "Where to?"
+                        case "media": return Vehicle.nowPlaying.title + (Vehicle.playing ? "  ▶" : "  ❚❚")
                         case "phone": return Vehicle.callState !== "idle" ? "In call: " + Vehicle.callName : (Vehicle.phoneConnected ? Vehicle.deviceName + " connected" : "No phone")
-                        case "climate": return "Driver " + Vehicle.driverTemp.toFixed(1) + "\u00B0  \u00B7  Cabin " + Vehicle.cabinTemp.toFixed(1) + "\u00B0"
+                        case "climate": return "Driver " + Vehicle.driverTemp.toFixed(1) + "°  ·  Cabin " + Vehicle.cabinTemp.toFixed(1) + "°"
                         case "vehicle": return Vehicle.alerts[0]
-                        case "drive": return Vehicle.driveMode + (Vehicle.acc ? "  \u00B7  ACC on" : "")
-                        case "energy": return Math.round(Vehicle.battery) + "%  \u00B7  " + Math.round(Vehicle.rangeKm * Vehicle.unitK) + " " + Vehicle.distUnit + (Vehicle.charging ? "  \u26A1\uFE0E" : "")
-                        case "apps": return "Weather \u00B7 Messages \u00B7 Calendar \u00B7 Parking"
-                        default: return "Display \u00B7 Sound \u00B7 Connectivity \u00B7 System"
+                        case "drive": return Vehicle.driveMode + (Vehicle.acc ? "  ·  ACC on" : "")
+                        case "energy": return Math.round(Vehicle.battery) + "%  ·  " + Math.round(Vehicle.rangeKm * Vehicle.unitK) + " " + Vehicle.distUnit + (Vehicle.charging ? "  ⚡︎" : "")
+                        case "apps": return "Weather · Messages · Calendar · Parking"
+                        default: return "Display · Sound · Connectivity · System"
                         }
                     }
                 }
+
+                // bottom accent pill
                 Rectangle {
-                    x: 28; y: parent.height - 40; height: 8; radius: 4
-                    width: d.cur ? parent.width - 56 : 40
-                    color: d.modelData.tint; opacity: 0.8
-                    Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
+                    x: 28; y: parent.height - 38; height: 5; radius: 3
+                    width: d.cur ? parent.width - 56 : 32
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0; color: d.modelData.tint }
+                        GradientStop { position: 1; color: Theme.alpha(d.modelData.tint, 0.4) }
+                    }
+                    opacity: d.cur ? 0.9 : 0.5
+                    Behavior on width { NumberAnimation { duration: 420; easing.type: Easing.OutCubic } }
                 }
 
                 MouseArea {

@@ -39,8 +39,8 @@ Window {
         Rectangle { anchors.fill: parent; color: Theme.bg }
 
         // ambient light strip (animated)
-        Glow { x: -200; y: 420; width: 1200; height: 500; color: Theme.ambient; strength: 0.22 }
-        Glow { x: 900; y: 440; width: 1200; height: 500; color: Theme.ambient; strength: 0.18 }
+        Glow { x: -250; y: 380; width: 1300; height: 560; color: Theme.ambient; strength: 0.18 }
+        Glow { x: 850; y: 400; width: 1300; height: 560; color: Theme.ambient; strength: 0.14 }
         Rectangle {
             x: 0; y: 708; width: parent.width; height: 4
             gradient: Gradient {
@@ -55,12 +55,19 @@ Window {
 
         // ---------- driver cluster ----------
         Rectangle {
-            x: 20; y: 20; width: 720; height: 680; radius: 34
-            color: Theme.panel; border.color: Theme.line
+            x: 20; y: 20; width: 720; height: 680; radius: 36
             gradient: Gradient {
-                GradientStop { position: 0; color: Theme.panel }
-                GradientStop { position: 1; color: Theme.bg }
+                GradientStop { position: 0.0; color: Theme.panel }
+                GradientStop { position: 1.0; color: Theme.bg }
             }
+            border.color: Theme.line; border.width: 1
+        }
+        // subtle inner glow ring
+        Rectangle {
+            x: 20; y: 20; width: 720; height: 680; radius: 36
+            color: "transparent"
+            border.color: Theme.alpha(Theme.ambient, 0.08); border.width: 2
+            scale: 0.98
         }
         Cluster {
             id: cluster
@@ -73,26 +80,39 @@ Window {
 
         // ---------- control display ----------
         Rectangle {
-            x: 780; y: 20; width: 1120; height: 680; radius: 34
-            color: Theme.panel; border.color: Theme.line
-            clip: true
-        }
-        Item {
-            id: control
-            x: 780; y: 20; width: 1120; height: 680
-            opacity: App.awake ? 1 : 0
-            Behavior on opacity { NumberAnimation { duration: 700 } }
-
-            StatusBar { id: statusBar; title: root.titles[App.page] }
-
-            Loader {
-                id: pageLoader
-                y: 64; width: 1120; height: 520
-                source: root.files["home"]
-                clip: true
+            id: controlContainer
+            x: 780; y: 20; width: 1120; height: 680; radius: 36
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: Theme.panel }
+                GradientStop { position: 1.0; color: Theme.bg }
             }
+            border.color: Theme.line; border.width: 1
+            clip: true
 
-            BottomBar { y: 584 }
+            Item {
+                id: control
+                anchors.fill: parent
+                opacity: App.awake ? 1 : 0
+                Behavior on opacity { NumberAnimation { duration: 700 } }
+
+                StatusBar { id: statusBar; title: root.titles[App.page] }
+
+                Loader {
+                    id: pageLoader
+                    y: 64; width: 1120; height: 520
+                    source: root.files["home"]
+                    clip: true
+                }
+
+                BottomBar { y: 584 }
+            }
+        }
+        // subtle inner glow ring
+        Rectangle {
+            x: 780; y: 20; width: 1120; height: 680; radius: 36
+            color: "transparent"
+            border.color: Theme.alpha(Theme.ambient, 0.08); border.width: 2
+            scale: 0.98
         }
 
         // page transition
@@ -126,33 +146,45 @@ Window {
         Rectangle {
             id: callPop
             z: 70
-            width: 560; height: 130; radius: 28
+            width: 580; height: 136; radius: 32
             x: 1360 - width / 2
-            y: Vehicle.callState === "incoming" && App.awake ? 40 : -200
-            color: "#10141b"; border.color: Theme.ok; border.width: 2
-            Behavior on y { NumberAnimation { duration: 450; easing.type: Easing.OutBack } }
+            y: Vehicle.callState === "incoming" && App.awake ? 38 : -210
+            color: Theme.glass
+            border.color: Theme.ok; border.width: 1.5
+            Behavior on y { NumberAnimation { duration: 480; easing.type: Easing.OutBack } }
+
+            // backdrop tint
+            Rectangle { anchors.fill: parent; radius: parent.radius; color: "#0c1420"; opacity: 0.92 }
+
             Row {
                 x: 24; anchors.verticalCenter: parent.verticalCenter; spacing: 18
+                // Avatar circle
                 Rectangle {
-                    width: 70; height: 70; radius: 35; color: Theme.alpha(Theme.ok, 0.25); border.color: Theme.ok
+                    width: 72; height: 72; radius: 36
+                    color: Theme.alpha(Theme.ok, 0.20); border.color: Theme.ok; border.width: 2
                     anchors.verticalCenter: parent.verticalCenter
-                    Text { anchors.centerIn: parent; text: Vehicle.callName.length ? Vehicle.callName[0] : ""; color: Theme.ok; font.pixelSize: 34 }
+                    Text {
+                        anchors.centerIn: parent
+                        text: Vehicle.callName.length ? Vehicle.callName[0] : ""
+                        color: Theme.ok; font.pixelSize: 34; font.weight: Font.DemiBold
+                    }
                     SequentialAnimation on scale {
                         running: callPop.y > 0; loops: Animation.Infinite
-                        NumberAnimation { to: 1.12; duration: 500 } NumberAnimation { to: 1; duration: 500 }
+                        NumberAnimation { to: 1.10; duration: 550; easing.type: Easing.InOutSine }
+                        NumberAnimation { to: 1; duration: 550; easing.type: Easing.InOutSine }
                     }
                 }
                 Column {
-                    anchors.verticalCenter: parent.verticalCenter
-                    Text { text: "Incoming call"; color: Theme.dim; font.pixelSize: 16 }
-                    Text { text: Vehicle.callName; color: "white"; font.pixelSize: 28 }
+                    anchors.verticalCenter: parent.verticalCenter; spacing: 4
+                    Text { text: "Incoming call"; color: Theme.dim; font.pixelSize: 15; font.letterSpacing: 1 }
+                    Text { text: Vehicle.callName; color: "white"; font.pixelSize: 26; font.weight: Font.Medium }
                 }
             }
             Row {
                 anchors.right: parent.right; anchors.rightMargin: 20
                 anchors.verticalCenter: parent.verticalCenter; spacing: 12
-                Btn { width: 84; height: 64; round: true; glyph: "\u2715"; tint: Theme.danger; active: true; onClicked: Vehicle.endCall() }
-                Btn { width: 84; height: 64; round: true; glyph: Theme.g.phone; tint: Theme.ok; active: true
+                Btn { width: 82; height: 64; round: true; glyph: "\u2715"; tint: Theme.danger; active: true; onClicked: Vehicle.endCall() }
+                Btn { width: 82; height: 64; round: true; glyph: Theme.g.phone; tint: Theme.ok; active: true
                     onClicked: { Vehicle.answer(); App.goTo("phone") } }
             }
         }
@@ -163,21 +195,22 @@ Window {
             z: 80
             property string msg: ""
             property string glyph: ""
-            height: 60; radius: 30
-            width: tRow.width + 56
+            height: 58; radius: 29
+            width: tRow.width + 60
             x: 1360 - width / 2
-            y: -100
-            color: "#161c27"; border.color: Theme.ambient
+            y: -120
+            color: Theme.alpha(Theme.panel, 0.92)
+            border.color: Theme.alpha(Theme.ambient, 0.65); border.width: 1
             Row {
-                id: tRow; anchors.centerIn: parent; spacing: 12
-                Text { text: toastBox.glyph; color: Theme.ambient; font.pixelSize: 24; anchors.verticalCenter: parent.verticalCenter }
-                Text { text: toastBox.msg; color: "white"; font.pixelSize: 22; anchors.verticalCenter: parent.verticalCenter }
+                id: tRow; anchors.centerIn: parent; spacing: 10
+                Text { text: toastBox.glyph; color: Theme.ambient; font.pixelSize: 22; anchors.verticalCenter: parent.verticalCenter }
+                Text { text: toastBox.msg; color: Theme.text; font.pixelSize: 21; font.weight: Font.Medium; anchors.verticalCenter: parent.verticalCenter }
             }
             SequentialAnimation {
                 id: toastAnim
-                NumberAnimation { target: toastBox; property: "y"; to: 36; duration: 320; easing.type: Easing.OutBack }
-                PauseAnimation { duration: 2400 }
-                NumberAnimation { target: toastBox; property: "y"; to: -100; duration: 280; easing.type: Easing.InCubic }
+                NumberAnimation { target: toastBox; property: "y"; to: 34; duration: 340; easing.type: Easing.OutBack }
+                PauseAnimation { duration: 2500 }
+                NumberAnimation { target: toastBox; property: "y"; to: -120; duration: 300; easing.type: Easing.InCubic }
             }
         }
 

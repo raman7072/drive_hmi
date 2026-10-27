@@ -9,7 +9,7 @@ Item {
     property real pf: Vehicle.bootSweep > 0 ? Vehicle.bootSweep * 0.7
                                             : Math.max(-1, Math.min(1, Vehicle.power / 220))
     readonly property bool over: Vehicle.speedInfo && Vehicle.speed > Vehicle.speedLimit + 5
-    readonly property color arcColor: over ? Theme.warn : Theme.ambient
+    readonly property color arcColor: over ? Theme.danger : Theme.ambient
 
     // Static tracks & ticks: painted once and cached in GPU layer
     Canvas {
@@ -129,20 +129,22 @@ Item {
     Text {
         id: spd
         anchors.horizontalCenter: parent.horizontalCenter
-        y: 58
+        y: 50
         text: Math.round(Vehicle.speed * Vehicle.unitK)
-        font.pixelSize: 132
-        font.weight: Font.Light
+        font.pixelSize: 138
+        font.weight: Font.Thin
         font.family: Theme.family
-        color: r.over ? Theme.warn : Theme.text
+        color: r.over ? Theme.danger : Theme.text
+        Behavior on color { ColorAnimation { duration: 300 } }
     }
     Text {
         anchors.horizontalCenter: parent.horizontalCenter
-        y: 200
+        y: 204
         text: Vehicle.speedUnit
-        font.pixelSize: 20
+        font.pixelSize: 18
         color: Theme.dim
-        font.letterSpacing: 2
+        font.letterSpacing: 3
+        font.weight: Font.Medium
     }
 
     // nav turn OR power readout
@@ -182,10 +184,11 @@ Item {
     // gear
     Text {
         anchors.horizontalCenter: parent.horizontalCenter
-        y: 322
+        y: 318
         text: Vehicle.gear
-        font.pixelSize: 54
+        font.pixelSize: 60
         font.weight: Font.DemiBold
         color: Theme.ambient
+        Behavior on color { ColorAnimation { duration: 400 } }
     }
 }

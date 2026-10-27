@@ -79,7 +79,13 @@ Item {
     Timer { id: listenTimer; interval: 2200; onTriggered: { vo.run(vo.demos[vo.demoIndex % vo.demos.length]); vo.demoIndex++ } }
     Timer { id: closeTimer; onTriggered: vo.hide() }
 
-    Rectangle { anchors.fill: parent; color: "#000000"; opacity: 0.78 }
+    Rectangle {
+        anchors.fill: parent
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: "#e8000000" }
+            GradientStop { position: 1.0; color: "#d0030812" }
+        }
+    }
     MouseArea { anchors.fill: parent; onClicked: vo.hide() }
 
     // orb
@@ -132,8 +138,9 @@ Item {
     }
     Text {
         visible: vo.listening
-        anchors.horizontalCenter: parent.horizontalCenter; y: 520
-        text: "Listening\u2026  say or type a command"; color: Theme.dim; font.pixelSize: 22
+        anchors.horizontalCenter: parent.horizontalCenter; y: 522
+        text: "Listening\u2026  say or type a command"
+        color: Theme.dim; font.pixelSize: 20; font.letterSpacing: 0.5
     }
 
     TextField {

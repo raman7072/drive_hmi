@@ -204,6 +204,7 @@ Item {
     property real remaining: 0
     property real etaMin: 0
     property string etaClock: "--:--"
+    property real navEtaAcc: 0
 
     // ================= CLOCK =================
     property string timeText: "00:00"
@@ -211,10 +212,10 @@ Item {
 
     // ================= FUNCTIONS =================
     function modeColor(m) {
-        if (m === "Eco Pro") return "#2ecc71"
-        if (m === "Sport") return "#ff3b30"
-        if (m === "Individual") return "#a855f7"
-        return "#1c69d4"
+        if (m === "Eco Pro") return "#10b981"
+        if (m === "Sport") return "#ff3355"
+        if (m === "Individual") return "#8b5cf6"
+        return "#00a8ff"
     }
     function setMode(m) {
         driveMode = m
@@ -365,48 +366,61 @@ Item {
             turnStreet = r.names[i + 1]
         }
         etaMin = remaining / 1000 / 45 * 60
-        etaClock = Qt.formatTime(new Date(Date.now() + etaMin * 60000), use24h ? "HH:mm" : "h:mm AP")
+        navEtaAcc += 0.04
+        if (navEtaAcc >= 1.0 || etaClock === "--:--") {
+            navEtaAcc = 0
+            etaClock = Qt.formatTime(new Date(Date.now() + etaMin * 60000), use24h ? "HH:mm" : "h:mm AP")
+        }
     }
 
-    // ---- main simulation step
+    // ---- main simulation step (called at 25 Hz)
     function step(dt) {
-        var cap = driveMode === "Eco Pro" ? 1.4 : (driveMode === "Sport" ? 4.2 : 2.4)
+        // cache frequently-read properties into locals for perf
+        var spd = speed, gearNow = gear, modeNow = driveMode
+        var cap = modeNow === "Eco Pro" ? 1.4 : (modeNow === "Sport" ? 4.2 : 2.4)
         var a = 0
-        if (gear === "D" || gear === "R") {
+
+        if (gearNow === "D" || gearNow === "R") {
             if (manual) {
-                a = throttle * cap - brake * 9 - (speed > 0 ? 0.25 + speed * 0.0035 : 0)
-                if (throttle < 0.05 && brake < 0.05 && speed > 0) a -= 0.4 + regen * 0.5
+                // rolling resistance + speed-squared drag
+                var resist = spd > 0 ? 0.25 + spd * 0.0035 : 0
+                a = throttle * cap - brake * 9 - resist
+                if (throttle < 0.05 && brake < 0.05 && spd > 0) a -= 0.4 + regen * 0.5
             } else {
                 var tgt = autoDrive ? targetSpeed : 0
                 if (acc) tgt = autoDrive ? Math.min(tgt, cruiseSpeed) : cruiseSpeed
-                if (gear === "R") tgt = Math.min(tgt, 10)
-                var err = tgt - speed
+                if (gearNow === "R") tgt = Math.min(tgt, 10)
+                var err = tgt - spd
                 a = Math.max(-4.5, Math.min(cap, err * 0.35))
                 throttle = a > 0 ? a / cap : 0
-                brake = a < -1 ? Math.min(1, -a / 6) : 0
+                brake    = a < -1 ? Math.min(1, -a / 6) : 0
             }
-            var maxS = gear === "R" ? 12 : maxSpeed
-            speed = Math.max(0, Math.min(maxS, speed + a * 3.6 * dt))
-        } else if (gear === "N") {
-            speed = Math.max(0, speed - 1.2 * 3.6 * dt)
-            a = -1.2; throttle = 0; brake = 0
+            var maxS = gearNow === "R" ? 12 : maxSpeed
+            spd = Math.max(0, Math.min(maxS, spd + a * 3.6 * dt))
+            speed = spd
+        } else if (gearNow === "N") {
+            spd = Math.max(0, spd - 1.2 * 3.6 * dt)
+            speed = spd; a = -1.2; throttle = 0; brake = 0
         } else {
-            speed = 0; throttle = 0; brake = 0
+            speed = 0; spd = 0; throttle = 0; brake = 0
         }
         accel = a
 
+        // power (kW): traction + aero drag + base load
         var pw = 0.4
-        if (gear === "D" || gear === "R") {
-            pw = 2.4 * a * speed / 3.6 + 0.0000085 * speed * speed * speed + 0.07 * speed
+        if (gearNow === "D" || gearNow === "R") {
+            var spdMs = spd / 3.6
+            pw = 2.4 * a * spdMs + 0.0000085 * spd * spd * spd + 0.07 * spd
             if (pw < 0) pw = Math.max(-110, pw * (0.55 + 0.15 * regen))
         }
         power += (pw - power) * Math.min(1, dt * 8)
 
-        // energy
+        // energy accounting
         if (charging) {
-            if (gear !== "P" || battery >= chargeLimit) {
+            if (gearNow !== "P" || battery >= chargeLimit) {
                 charging = false
-                if (battery >= chargeLimit) App.toast("Charge limit reached (" + Math.round(chargeLimit) + "%)", Theme.g.energy)
+                if (battery >= chargeLimit)
+                    App.toast("Charge limit reached (" + Math.round(chargeLimit) + "%)", Theme.g.energy)
             } else {
                 chargePower = Math.max(7, 150 - battery * 1.2)
                 battery = Math.min(100, battery + chargePower * dt / 3600 / 108 * 100 * 120)
@@ -415,10 +429,13 @@ Item {
             chargePower = 0
             battery = Math.max(0, Math.min(100, battery - power * dt / 3600 / 108 * 100 * 60))
         }
-        var dd = speed / 3600 * dt
+
+        // odometer
+        var dd = spd * dt / 3600
         odometer += dd; trip += dd
         ecoScore = Math.max(40, Math.min(100, ecoScore + (throttle > 0.8 ? -0.02 : 0.004)))
 
+        // power history – only on relevant pages
         histAcc += dt
         if (histAcc >= 0.5) {
             histAcc = 0
@@ -430,27 +447,29 @@ Item {
             }
         }
 
-        // climate
-        var tT = sync ? driverTemp : (driverTemp + passTemp) / 2
+        // climate simulation
+        var tT = sync ? driverTemp : (driverTemp + passTemp) * 0.5
         cabinTemp += (tT - cabinTemp) * dt * (0.02 + fan * 0.01)
 
-        // lead vehicle simulation
+        // lead vehicle
         leadPhase += dt
         leadGap = 0.55 + 0.25 * Math.sin(leadPhase * 0.35)
 
-        // media + call timers
+        // media position
         if (playing && !isRadio && nowPlaying.dur > 0) {
             position += dt
             if (position >= nowPlaying.dur) {
                 if (repeatMode === 2) position = 0; else nextTrack()
             }
         }
+
+        // call timer
         if (callState === "active") {
             callAcc += dt
             if (callAcc >= 1) { callAcc = 0; callSecs++ }
         }
 
-        mapProgress += speed / 3.6 * dt
+        mapProgress += spd / 3.6 * dt
         updateNav()
     }
 

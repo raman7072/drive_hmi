@@ -17,14 +17,17 @@ Item {
         return ((h ^ (h >>> 16)) >>> 0) % 1000
     }
 
-    Rectangle { anchors.fill: parent; color: np.mapNight ? "#0c1119" : "#e9e5dc" }
+    Rectangle { anchors.fill: parent; color: np.mapNight ? "#090d14" : "#e9e5dc" }
 
     Canvas {
         id: map
         anchors.fill: parent
         renderStrategy: Canvas.Cooperative
         property real dash: 0
-        Timer { interval: 80; repeat: true; running: np.visible && App.page === "nav"; onTriggered: { map.dash = (map.dash + 6) % 80; map.requestPaint() } }
+        Timer {
+            interval: 80; repeat: true; running: np.visible && App.page === "nav"
+            onTriggered: { map.dash = (map.dash + 6) % 80; map.requestPaint() }
+        }
 
         onPaint: {
             var ctx = getContext("2d")
@@ -50,10 +53,10 @@ Item {
                 for (var j = gy0; j < gy1; j++) {
                     var hv = np.hash(i, j)
                     if (hv % 9 === 0) {
-                        ctx.fillStyle = night ? "#10261a" : "#c8e2b8"
+                        ctx.fillStyle = night ? "#0f2117" : "#c8e2b8"
                         ctx.fillRect(i * S + 14, j * S + 14, S - 28, S - 28)
                     } else if (hv % 3 === 0) {
-                        ctx.fillStyle = night ? "#131a25" : "#d8d3c6"
+                        ctx.fillStyle = night ? "#121822" : "#d8d3c6"
                         ctx.fillRect(i * S + 30, j * S + 30, S * 0.42, S * 0.4)
                         ctx.fillRect(i * S + 30 + S * 0.46, j * S + 60, S * 0.3, S * 0.5)
                     }
@@ -61,7 +64,7 @@ Item {
             }
 
             // river
-            ctx.strokeStyle = night ? "#0f2740" : "#a8cfee"
+            ctx.strokeStyle = night ? "#0c2035" : "#a8cfee"
             ctx.lineWidth = 220
             ctx.beginPath()
             var first = true
@@ -74,13 +77,13 @@ Item {
             // roads
             for (var a = gx0; a <= gx1; a++) {
                 var major = (a % 4 === 0)
-                ctx.strokeStyle = night ? (major ? "#2b3547" : "#1f2836") : (major ? "#ffffff" : "#f6f3ec")
+                ctx.strokeStyle = night ? (major ? "#263040" : "#1a222e") : (major ? "#ffffff" : "#f6f3ec")
                 ctx.lineWidth = major ? 30 : 16
                 ctx.beginPath(); ctx.moveTo(a * S, pos.y - R); ctx.lineTo(a * S, pos.y + R); ctx.stroke()
             }
             for (var b = gy0; b <= gy1; b++) {
                 var majorB = (b % 4 === 0)
-                ctx.strokeStyle = night ? (majorB ? "#2b3547" : "#1f2836") : (majorB ? "#ffffff" : "#f6f3ec")
+                ctx.strokeStyle = night ? (majorB ? "#263040" : "#1a222e") : (majorB ? "#ffffff" : "#f6f3ec")
                 ctx.lineWidth = majorB ? 30 : 16
                 ctx.beginPath(); ctx.moveTo(pos.x - R, b * S); ctx.lineTo(pos.x + R, b * S); ctx.stroke()
             }
@@ -102,7 +105,7 @@ Item {
                 if (np.traffic) {
                     for (var s = 1; s < r.pts.length; s++) {
                         if (s % 4 === 2 || s % 7 === 3) {
-                            ctx.strokeStyle = s % 4 === 2 ? "#ff4d4f" : "#ffb020"
+                            ctx.strokeStyle = s % 4 === 2 ? "#ff4d4f" : "#f97316"
                             ctx.lineWidth = 22
                             ctx.beginPath(); ctx.moveTo(r.pts[s - 1].x, r.pts[s - 1].y); ctx.lineTo(r.pts[s].x, r.pts[s].y); ctx.stroke()
                         }
@@ -122,49 +125,71 @@ Item {
             }
             ctx.restore()
 
-            // car chevron
+            // car chevron (drawn cleanly without expensive CPU shadowBlur)
             var rel = pos.h - Vehicle.mapHeading
             ctx.save()
             ctx.translate(w / 2, h * 0.68)
             ctx.rotate(rel)
-            ctx.shadowColor = Theme.css(Theme.ambient, 1); ctx.shadowBlur = 20
+
+            // outer soft accent glow
+            ctx.fillStyle = Theme.css(Theme.ambient, 0.40)
+            ctx.beginPath(); ctx.moveTo(0, -32); ctx.lineTo(26, 25); ctx.lineTo(0, 13); ctx.lineTo(-26, 25); ctx.closePath(); ctx.fill()
+
+            // crisp foreground chevron
             ctx.fillStyle = "white"
             ctx.beginPath(); ctx.moveTo(0, -26); ctx.lineTo(20, 20); ctx.lineTo(0, 10); ctx.lineTo(-20, 20); ctx.closePath(); ctx.fill()
+
+            // accent core dot
+            ctx.fillStyle = Theme.css(Theme.ambient, 1)
+            ctx.beginPath(); ctx.arc(0, 4, 3.5, 0, Math.PI * 2); ctx.fill()
+
             ctx.restore()
         }
     }
 
-    // vignette to blend map into UI
+    // vignette to blend map smoothly into HMI frame
     Rectangle {
         anchors.fill: parent; color: "transparent"
         gradient: Gradient {
             GradientStop { position: 0.0; color: Theme.alpha(Theme.panel, 0.75) }
             GradientStop { position: 0.18; color: "transparent" }
             GradientStop { position: 0.85; color: "transparent" }
-            GradientStop { position: 1.0; color: Theme.alpha(Theme.panel, 0.7) }
+            GradientStop { position: 1.0; color: Theme.alpha(Theme.panel, 0.75) }
         }
     }
 
     // ---------- guidance banner ----------
     Rectangle {
         id: banner
-        x: 20; y: Vehicle.navActive ? 16 : -140; width: 380; height: 104; radius: 24
-        color: Theme.alpha("#0f1319", 0.94); border.color: Theme.ambient
+        x: 20; y: Vehicle.navActive ? 16 : -140; width: 400; height: 104; radius: 24
+        color: Theme.alpha("#0c111a", 0.92)
+        border.color: Theme.alpha(Theme.ambient, 0.75); border.width: 1.5
         Behavior on y { NumberAnimation { duration: 500; easing.type: Easing.OutBack } }
+
+        // inner top glass highlight
+        Rectangle {
+            anchors.fill: parent; radius: parent.radius; color: "transparent"
+            border.width: 1; border.color: Theme.alpha("white", 0.12)
+        }
+
         Row {
-            anchors.verticalCenter: parent.verticalCenter; x: 20; spacing: 18
+            anchors.verticalCenter: parent.verticalCenter; x: 22; spacing: 18
             Text {
                 text: Vehicle.turnDir === "left" ? "\u2B05" : (Vehicle.turnDir === "right" ? "\u27A1" : (Vehicle.turnDir === "arrive" ? "\u2691" : "\u2B06"))
-                font.pixelSize: 62; color: Theme.ambient; anchors.verticalCenter: parent.verticalCenter
+                font.pixelSize: 58; color: Theme.ambient; anchors.verticalCenter: parent.verticalCenter
             }
             Column {
-                anchors.verticalCenter: parent.verticalCenter
+                anchors.verticalCenter: parent.verticalCenter; spacing: 2
                 Text {
-                    color: "white"; font.pixelSize: 34
+                    color: "white"; font.pixelSize: 32; font.weight: Font.DemiBold; font.family: Theme.family
                     text: Vehicle.turnDist >= 1000 ? (Vehicle.turnDist / 1000 * Vehicle.unitK).toFixed(1) + " " + Vehicle.distUnit
                                                    : Math.round(Vehicle.turnDist * (Vehicle.useMiles ? 3.28084 : 1) / 10) * 10 + (Vehicle.useMiles ? " ft" : " m")
                 }
-                Text { color: Theme.dim; font.pixelSize: 18; text: Vehicle.turnDir === "arrive" ? "Arrive at " + Vehicle.navDest : "onto " + Vehicle.turnStreet; elide: Text.ElideRight; width: 220 }
+                Text {
+                    color: Theme.dim; font.pixelSize: 17; font.family: Theme.family
+                    text: Vehicle.turnDir === "arrive" ? "Arrive at " + Vehicle.navDest : "onto " + Vehicle.turnStreet
+                    elide: Text.ElideRight; width: 260
+                }
             }
         }
     }
@@ -172,16 +197,36 @@ Item {
     // ---------- ETA card ----------
     Rectangle {
         x: 20; y: Vehicle.navActive ? parent.height - 100 : parent.height + 20
-        width: 520; height: 84; radius: 24
-        color: Theme.alpha("#0f1319", 0.94); border.color: Theme.line
+        width: 530; height: 84; radius: 24
+        color: Theme.alpha("#0c111a", 0.92)
+        border.color: Theme.glassB; border.width: 1.5
         Behavior on y { NumberAnimation { duration: 500; easing.type: Easing.OutBack } }
-        Row {
-            x: 22; anchors.verticalCenter: parent.verticalCenter; spacing: 30
-            Column { Text { text: Vehicle.etaClock; color: "white"; font.pixelSize: 30 } Text { text: "arrival"; color: Theme.dim; font.pixelSize: 14 } }
-            Column { Text { text: Math.round(Vehicle.etaMin) + " min"; color: "white"; font.pixelSize: 30 } Text { text: "remaining"; color: Theme.dim; font.pixelSize: 14 } }
-            Column { Text { text: (Vehicle.remaining / 1000 * Vehicle.unitK).toFixed(1) + " " + Vehicle.distUnit; color: "white"; font.pixelSize: 30 } Text { text: "distance"; color: Theme.dim; font.pixelSize: 14 } }
+
+        Rectangle {
+            anchors.fill: parent; radius: parent.radius; color: "transparent"
+            border.width: 1; border.color: Theme.alpha("white", 0.10)
         }
-        Btn { anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter; width: 70; height: 56; glyph: "\u2715"; tint: Theme.danger; active: true; onClicked: Vehicle.stopNav() }
+
+        Row {
+            x: 24; anchors.verticalCenter: parent.verticalCenter; spacing: 32
+            Column {
+                Text { text: Vehicle.etaClock; color: "white"; font.pixelSize: 28; font.weight: Font.DemiBold; font.family: Theme.family }
+                Text { text: "arrival"; color: Theme.dim; font.pixelSize: 13; font.family: Theme.family }
+            }
+            Column {
+                Text { text: Math.round(Vehicle.etaMin) + " min"; color: "white"; font.pixelSize: 28; font.weight: Font.DemiBold; font.family: Theme.family }
+                Text { text: "remaining"; color: Theme.dim; font.pixelSize: 13; font.family: Theme.family }
+            }
+            Column {
+                Text { text: (Vehicle.remaining / 1000 * Vehicle.unitK).toFixed(1) + " " + Vehicle.distUnit; color: "white"; font.pixelSize: 28; font.weight: Font.DemiBold; font.family: Theme.family }
+                Text { text: "distance"; color: Theme.dim; font.pixelSize: 13; font.family: Theme.family }
+            }
+        }
+        Btn {
+            anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter
+            width: 66; height: 56; glyph: "\u2715"; tint: Theme.danger; active: true
+            onClicked: Vehicle.stopNav()
+        }
     }
 
     // ---------- map controls ----------
@@ -199,17 +244,30 @@ Item {
         id: sheet
         x: np.searchOpen ? parent.width - 86 - 420 : parent.width
         y: 16; width: 400; height: parent.height - 32; radius: 26
-        color: Theme.alpha("#0f1319", 0.97); border.color: Theme.line
+        color: Theme.alpha("#0c111a", 0.96)
+        border.color: Theme.glassB; border.width: 1.5
         Behavior on x { NumberAnimation { duration: 380; easing.type: Easing.OutCubic } }
+
+        Rectangle {
+            anchors.fill: parent; radius: parent.radius; color: "transparent"
+            border.width: 1; border.color: Theme.alpha("white", 0.12)
+        }
+
         TextField {
             id: tf
             x: 16; y: 16; width: parent.width - 32; height: 52
             placeholderText: "Search destination"
-            color: "white"; font.pixelSize: 20; placeholderTextColor: "#6d7889"
-            background: Rectangle { radius: 26; color: "#171d28"; border.color: tf.activeFocus ? Theme.ambient : Theme.line }
+            color: "white"; font.pixelSize: 19; placeholderTextColor: "#6d7889"
+            font.family: Theme.family
+            background: Rectangle {
+                radius: 26; color: Theme.alpha(Theme.panel2, 0.8)
+                border.color: tf.activeFocus ? Theme.ambient : Theme.line
+                border.width: tf.activeFocus ? 2 : 1
+            }
             leftPadding: 20
             onTextChanged: np.filter = text.toLowerCase()
         }
+
         ListView {
             x: 8; y: 84; width: parent.width - 16; height: parent.height - 96
             clip: true; spacing: 6
@@ -221,18 +279,30 @@ Item {
                 width: ListView.view.width; radius: 16
                 visible: np.filter === "" || modelData.name.toLowerCase().indexOf(np.filter) >= 0
                 opacity: visible ? 1 : 0
-                color: rma.pressed ? Theme.panel2 : "transparent"
+                color: rma.pressed ? Theme.panel2 : (rma.containsMouse ? Theme.alpha(Theme.panel2, 0.6) : "transparent")
+                Behavior on color { ColorAnimation { duration: 150 } }
+
                 Row {
                     x: 12; anchors.verticalCenter: parent.verticalCenter; spacing: 16
-                    Text { text: modelData.glyph; font.pixelSize: 28; color: Theme.ambient; width: 34; horizontalAlignment: Text.AlignHCenter; anchors.verticalCenter: parent.verticalCenter }
+                    Text {
+                        text: row.modelData.glyph; font.pixelSize: 26; color: Theme.ambient
+                        width: 34; horizontalAlignment: Text.AlignHCenter; anchors.verticalCenter: parent.verticalCenter
+                    }
                     Column {
-                        anchors.verticalCenter: parent.verticalCenter
-                        Text { text: modelData.name; color: "white"; font.pixelSize: 20 }
-                        Text { text: modelData.addr; color: Theme.dim; font.pixelSize: 13 }
+                        anchors.verticalCenter: parent.verticalCenter; spacing: 2
+                        Text { text: row.modelData.name; color: "white"; font.pixelSize: 19; font.family: Theme.family; font.weight: Font.DemiBold }
+                        Text { text: row.modelData.addr; color: Theme.dim; font.pixelSize: 13; font.family: Theme.family }
                     }
                 }
-                Text { anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter; text: (modelData.km * Vehicle.unitK).toFixed(1) + " " + Vehicle.distUnit; color: Theme.dim; font.pixelSize: 16 }
-                MouseArea { id: rma; anchors.fill: parent; onClicked: { App.poke(); Vehicle.startNav(row.index); np.searchOpen = false } }
+                Text {
+                    anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter
+                    text: (row.modelData.km * Vehicle.unitK).toFixed(1) + " " + Vehicle.distUnit
+                    color: Theme.dim; font.pixelSize: 15; font.family: Theme.family
+                }
+                MouseArea {
+                    id: rma; anchors.fill: parent; hoverEnabled: true
+                    onClicked: { App.poke(); Vehicle.startNav(row.index); np.searchOpen = false }
+                }
                 height: visible ? 62 : 0
             }
         }

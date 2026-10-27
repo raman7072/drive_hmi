@@ -9,7 +9,7 @@ Item {
         property real value: 21
         property string label: ""
         signal changed(real v)
-        width: 250; height: 330
+        width: 250; height: 340
         Canvas {
             id: dc
             x: 0; y: 0; width: 250; height: 250
@@ -21,18 +21,33 @@ Item {
                 var a0 = Math.PI * 0.75, span = Math.PI * 1.5
                 var f = (dial.value - 16) / 12
                 ctx.lineCap = "round"; ctx.lineWidth = 14
+                // track
                 ctx.strokeStyle = Theme.css(Theme.line, 1)
                 ctx.beginPath(); ctx.arc(125, 125, 105, a0, a0 + span); ctx.stroke()
+                // temp gradient arc
                 var g = ctx.createLinearGradient(0, 250, 250, 0)
-                g.addColorStop(0, "#2d9cdb"); g.addColorStop(0.5, "#ffffff"); g.addColorStop(1, "#ff7a45")
+                g.addColorStop(0, "#3bb0ff"); g.addColorStop(0.45, "#ffffff"); g.addColorStop(1, "#ff6a3d")
                 ctx.strokeStyle = g
                 ctx.beginPath(); ctx.arc(125, 125, 105, a0, a0 + span * f); ctx.stroke()
+                // needle tip dot
+                var tipAngle = a0 + span * f
+                ctx.fillStyle = "white"
+                ctx.beginPath(); ctx.arc(125 + Math.cos(tipAngle) * 105, 125 + Math.sin(tipAngle) * 105, 7, 0, Math.PI * 2); ctx.fill()
             }
         }
-        Text { anchors.horizontalCenter: dc.horizontalCenter; y: 84; text: dial.value.toFixed(1) + "\u00B0"; font.pixelSize: 62; font.weight: Font.Light; color: Theme.text }
-        Text { anchors.horizontalCenter: dc.horizontalCenter; y: 160; text: dial.label; font.pixelSize: 16; color: Theme.dim; font.letterSpacing: 2 }
-        Btn { x: 20; y: 262; width: 100; height: 58; text: "\u2212"; fontSize: 30; onClicked: dial.changed(dial.value - 0.5) }
-        Btn { x: 130; y: 262; width: 100; height: 58; text: "+"; fontSize: 30; onClicked: dial.changed(dial.value + 0.5) }
+        Text {
+            anchors.horizontalCenter: dc.horizontalCenter; y: 78
+            text: dial.value.toFixed(1) + "\u00B0"
+            font.pixelSize: 66; font.weight: Font.Thin; color: Theme.text
+        }
+        Text {
+            anchors.horizontalCenter: dc.horizontalCenter; y: 162
+            text: dial.label
+            font.pixelSize: 14; color: Theme.dim
+            font.letterSpacing: 2.5; font.weight: Font.Medium
+        }
+        Btn { x: 16; y: 272; width: 100; height: 58; text: "\u2212"; fontSize: 30; onClicked: dial.changed(dial.value - 0.5) }
+        Btn { x: 134; y: 272; width: 100; height: 58; text: "+"; fontSize: 30; onClicked: dial.changed(dial.value + 0.5) }
     }
 
     TempDial { x: 20; y: 14; value: Vehicle.driverTemp; label: "DRIVER"; onChanged: (v) => Vehicle.setDriverTemp(v) }
@@ -66,12 +81,12 @@ Item {
                 // seats
                 var seats = [[w / 2 - 50, 170, Vehicle.seatHeatL], [w / 2 + 12, 170, Vehicle.seatHeatR]]
                 for (var s = 0; s < 2; s++) {
-                    ctx.fillStyle = seats[s][2] > 0 ? Theme.css(Theme.warn, 0.25 + seats[s][2] * 0.2) : Theme.css(Theme.line, 1)
+                    ctx.fillStyle = seats[s][2] > 0 ? Theme.css(Theme.heat, 0.35 + seats[s][2] * 0.2) : Theme.css(Theme.line, 1)
                     ctx.beginPath(); ctx.roundedRect(seats[s][0], seats[s][1], 38, 46, 10, 10); ctx.fill()
                 }
                 // particles
                 var cold = (Vehicle.driverTemp < 20.5), warm = (Vehicle.driverTemp > 23.5)
-                var col = Vehicle.defrostFront ? "#ffb26b" : (cold ? "#5ec3ff" : (warm ? "#ff8a5b" : "#cfe3ff"))
+                var col = Vehicle.defrostFront ? "#ff7849" : (cold ? "#38bdf8" : (warm ? "#ff5733" : "#cfe3ff"))
                 var p = flow.parts
                 for (var i = 0; i < p.length; i++) {
                     var px = w / 2 - 65 + p[i].x * 130, py = 20 + p[i].y * 270
@@ -106,12 +121,12 @@ Item {
         Btn { width: 134; height: 64; text: "A/C"; active: Vehicle.acOn; onClicked: Vehicle.acOn = !Vehicle.acOn }
         Btn { width: 134; height: 64; text: "SYNC"; active: Vehicle.sync; onClicked: { Vehicle.sync = !Vehicle.sync; if (Vehicle.sync) Vehicle.passTemp = Vehicle.driverTemp } }
         Btn { width: 134; height: 64; text: "Recirc"; active: Vehicle.recirc; onClicked: Vehicle.recirc = !Vehicle.recirc }
-        Btn { width: 134; height: 64; text: "Defrost"; active: Vehicle.defrostFront; tint: Theme.warn; onClicked: Vehicle.defrostFront = !Vehicle.defrostFront }
-        Btn { width: 134; height: 64; text: "Rear"; active: Vehicle.defrostRear; tint: Theme.warn; onClicked: Vehicle.defrostRear = !Vehicle.defrostRear }
-        Btn { width: 134; height: 64; text: "Wheel heat"; fontSize: 18; active: Vehicle.steeringHeat; tint: Theme.warn; onClicked: Vehicle.steeringHeat = !Vehicle.steeringHeat }
+        Btn { width: 134; height: 64; text: "Defrost"; active: Vehicle.defrostFront; tint: Theme.heat; onClicked: Vehicle.defrostFront = !Vehicle.defrostFront }
+        Btn { width: 134; height: 64; text: "Rear"; active: Vehicle.defrostRear; tint: Theme.heat; onClicked: Vehicle.defrostRear = !Vehicle.defrostRear }
+        Btn { width: 134; height: 64; text: "Wheel heat"; fontSize: 18; active: Vehicle.steeringHeat; tint: Theme.heat; onClicked: Vehicle.steeringHeat = !Vehicle.steeringHeat }
         Btn { width: 134; height: 64; text: "Ionizer"; active: Vehicle.ionizer; onClicked: Vehicle.ionizer = !Vehicle.ionizer }
-        Btn { width: 220; height: 64; text: "Seat L: " + (Vehicle.seatHeatL ? Vehicle.seatHeatL : "off"); active: Vehicle.seatHeatL > 0; tint: Theme.warn; onClicked: Vehicle.seatHeatL = (Vehicle.seatHeatL + 1) % 4 }
-        Btn { width: 220; height: 64; text: "Seat R: " + (Vehicle.seatHeatR ? Vehicle.seatHeatR : "off"); active: Vehicle.seatHeatR > 0; tint: Theme.warn; onClicked: Vehicle.seatHeatR = (Vehicle.seatHeatR + 1) % 4 }
+        Btn { width: 220; height: 64; text: "Seat L: " + (Vehicle.seatHeatL ? Vehicle.seatHeatL : "off"); active: Vehicle.seatHeatL > 0; tint: Theme.heat; onClicked: Vehicle.seatHeatL = (Vehicle.seatHeatL + 1) % 4 }
+        Btn { width: 220; height: 64; text: "Seat R: " + (Vehicle.seatHeatR ? Vehicle.seatHeatR : "off"); active: Vehicle.seatHeatR > 0; tint: Theme.heat; onClicked: Vehicle.seatHeatR = (Vehicle.seatHeatR + 1) % 4 }
         Btn { width: 220; height: 64; text: "Pre-condition"; active: Vehicle.preconditioning; onClicked: { Vehicle.preconditioning = !Vehicle.preconditioning; if (Vehicle.preconditioning) { Vehicle.setDriverTemp(21); Vehicle.fan = 5 } } }
     }
 }

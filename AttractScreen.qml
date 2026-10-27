@@ -27,8 +27,9 @@ Item {
     Rectangle {
         anchors.fill: parent
         gradient: Gradient {
-            GradientStop { position: 0.0; color: "#03050a" }
-            GradientStop { position: 1.0; color: "#0a1220" }
+            GradientStop { position: 0.0; color: "#030509" }
+            GradientStop { position: 0.6; color: "#070e1a" }
+            GradientStop { position: 1.0; color: "#02050e" }
         }
     }
 
@@ -99,9 +100,9 @@ Item {
         }
         Text {
             anchors.centerIn: parent
-            text: "DRIVE"
-            font.pixelSize: 34; font.letterSpacing: 8; font.weight: Font.Light
-            color: "white"
+            text: "DRIVE HMI"
+            font.pixelSize: 28; font.letterSpacing: 10; font.weight: Font.Light
+            color: "white"; opacity: 0.9
         }
     }
 
@@ -155,22 +156,30 @@ Item {
     // clock + welcome text
     Column {
         anchors.horizontalCenter: parent.horizontalCenter
-        y: 610; spacing: 2
+        y: 604; spacing: 4
         opacity: 1 - at.burst
-        Text { anchors.horizontalCenter: parent.horizontalCenter; text: Vehicle.timeText; font.pixelSize: 54; font.weight: Font.Thin; color: "white" }
-        Text { anchors.horizontalCenter: parent.horizontalCenter; text: Vehicle.dateText; font.pixelSize: 18; color: "#9fb0c8"; font.letterSpacing: 2 }
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: Vehicle.timeText
+            font.pixelSize: 60; font.weight: Font.Thin; color: "white"
+        }
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: Vehicle.dateText
+            font.pixelSize: 18; color: "#8aa2be"; font.letterSpacing: 2.5
+        }
     }
     Text {
         id: hint
         anchors.horizontalCenter: parent.horizontalCenter
-        y: 24
-        text: "Welcome \u00B7 touch the screen or press any key"
-        font.pixelSize: 20; font.letterSpacing: 3; color: "#9fb0c8"
+        y: 20
+        text: "Touch the screen or press any key to start"
+        font.pixelSize: 18; font.letterSpacing: 2.5; color: "#7a90aa"
         SequentialAnimation on opacity {
             running: at.active
             loops: Animation.Infinite
-            NumberAnimation { from: 0.25; to: 1; duration: 1300; easing.type: Easing.InOutSine }
-            NumberAnimation { from: 1; to: 0.25; duration: 1300; easing.type: Easing.InOutSine }
+            NumberAnimation { from: 0.2; to: 0.8; duration: 1500; easing.type: Easing.InOutSine }
+            NumberAnimation { from: 0.8; to: 0.2; duration: 1500; easing.type: Easing.InOutSine }
         }
     }
 
