@@ -58,7 +58,7 @@ sequenceDiagram
 ## 3. End-to-End Image Creation Pipeline
 
 ```mermaid
-flowchart LR
+flowchart TD
     subgraph BuildStage ["1. Application Compilation"]
         SRC["DriveHMI Source Code"] --> CMAKE["CMake + Ninja"]
         CMAKE --> BIN["appDriveHMI Binary"]
